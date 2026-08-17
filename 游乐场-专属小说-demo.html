@@ -1,0 +1,1790 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>游乐场 · 专属小说 Demo</title>
+<style>
+:root {
+  --purple: #a855f7;
+  --purple-deep: #8b3ee8;
+  --purple-rgb: 168,85,247;
+  --purple-soft: #f3e8ff;
+  --ink: #1a1a1a;
+  --gray: #888;
+  --line: #eee;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #0f1115; color: var(--ink);
+}
+body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+/* 手机容器 */
+.phone {
+  position: relative; width: 428px; height: 852px;
+  background: #f4f5f7; overflow: hidden;
+  display: flex; flex-direction: column;
+  border-radius: 38px;
+  box-shadow: 0 30px 80px rgba(0,0,0,.55), 0 0 0 10px #1c1f26, 0 0 0 12px #2a2e37;
+}
+@media (orientation: portrait) {
+  body { align-items: stretch; }
+  .phone {
+    width: 100vw; height: 100vh; height: 100dvh;
+    border-radius: 0; box-shadow: none;
+  }
+}
+
+/* 状态栏 */
+.statusbar {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: calc(48px + var(--safe-top)); padding-top: var(--safe-top);
+  display: flex; align-items: center; justify-content: space-between;
+  padding-left: 28px; padding-right: 28px;
+  font-size: 15px; font-weight: 600; color: var(--ink);
+  z-index: 60; pointer-events: none;
+}
+.statusbar .icons { display: flex; gap: 6px; align-items: center; font-size: 12px; }
+.statusbar .bat { width: 24px; height: 12px; border: 1.5px solid currentColor; border-radius: 3px; position: relative; }
+.statusbar .bat::after { content:""; position:absolute; right:-3px; top:3px; width:2px; height:5px; background:currentColor; border-radius:0 1px 1px 0; }
+.statusbar .bat::before { content:""; position:absolute; left:1px; top:1px; bottom:1px; width:80%; background:currentColor; border-radius:1px; }
+
+/* 顶栏 */
+.navbar {
+  position: absolute; top: calc(44px + var(--safe-top)); left: 0; right: 0;
+  height: 48px; display: flex; align-items: center; justify-content: center;
+  z-index: 55;
+}
+.navbar .nav-title { font-size: 17px; font-weight: 700; color: var(--ink); }
+.navbar .nav-back, .navbar .nav-user {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--ink);
+}
+.navbar .nav-back { left: 8px; }
+.navbar .nav-user { right: 12px; }
+.chev { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ============ 页面3：Loading ============ */
+#loading {
+  background: linear-gradient(180deg,#eef4fb 0%,#e5eef9 40%,#f4f8fd 100%);
+}
+#loading .navbar { color: #333; }
+.ld-wrap {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding-bottom: 60px;
+}
+.ld-mascot {
+  width: 132px; height: auto; object-fit: contain;
+  animation: ld-float 2.4s ease-in-out infinite;
+}
+@keyframes ld-float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.ld-title { font-size: 17px; font-weight: 700; color: #555; margin-top: 18px; letter-spacing: .5px; }
+.ld-sub { font-size: 13px; color: #a9b4c2; margin-top: 10px; letter-spacing: .3px; }
+
+/* ============ 页面4：小说简介 ============ */
+/* ============ 简介页（对齐「席恩对话转小说」视觉/交互） ============ */
+#intro {
+  background-image: url("demo-assets/bg-intro.jpg");
+  background-size: cover; background-position: center; background-repeat: no-repeat;
+}
+/* 左上角圆形返回按钮（不遮挡状态栏） */
+.intro-back {
+  position: absolute;
+  top: calc(48px + var(--safe-top) + 6px);
+  left: 14px;
+  width: 40px; height: 40px; border-radius: 50%;
+  border: none; background: rgba(0,0,0,.05);
+  color: #333; font-size: 22px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 45;
+}
+.intro-back:active { background: rgba(0,0,0,.12); }
+.intro-back .chev { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+.intro-scroll {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding-top: calc(60px + var(--safe-top));
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.intro-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+.intro-cover-wrap {
+  text-align: center;
+  padding: 14px 40px 8px;
+  background: transparent;
+}
+.cover-img {
+  width: 110px; height: 152px;
+  object-fit: cover; object-position: center top;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.12);
+}
+
+.intro-body { padding: 4px 22px calc(20px + var(--safe-bottom)); background: transparent; text-align: center; }
+.intro-body > * { text-align: left; }
+
+.novel-title {
+  font-size: 19px; font-weight: 700; line-height: 1.35;
+  margin: 8px 0 10px; color: #1a1a1a; text-align: center;
+}
+.author-row {
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.author-name { font-size: 13px; color: #888; }
+
+/* 标签（最多 4 个） */
+.tags-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; justify-content: center; }
+.tag-pill {
+  font-size: 12px; color: var(--purple); background: transparent;
+  border: 1px solid rgba(var(--purple-rgb),.55);
+  padding: 4px 11px; border-radius: 13px; white-space: nowrap;
+}
+
+.section-head {
+  font-size: 15px; font-weight: 700; color: #1a1a1a;
+  margin-bottom: 8px; padding-top: 4px;
+}
+
+.intro-section { margin-bottom: 16px; }
+.intro-desc { position: relative; }
+.novel-intro {
+  font-size: 13.5px; line-height: 1.85; color: #3a3a3a; margin: 0;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5;
+  overflow: hidden;
+}
+.novel-intro p { margin: 0 0 8px; }
+.novel-intro p:last-child { margin-bottom: 0; }
+.intro-more {
+  display: inline-block; margin-top: 8px;
+  font-size: 13px; color: var(--purple); cursor: pointer; font-weight: 500;
+}
+.intro-desc.expanded .novel-intro { -webkit-line-clamp: unset; }
+
+.toc-preview { margin-top: 4px; }
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list li {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 4px; border-bottom: 1px solid #f0f0f0;
+  font-size: 14px; color: #2a2a2a; cursor: pointer; transition: background .15s;
+}
+.toc-list li:active { background: #f6f4ff; }
+.toc-list li .arrow { color: #c4c4c4; font-size: 17px; display: inline-flex; align-items: center; }
+.toc-list li .arrow .chev { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.toc-list li.locked { color: #b5b5b5; cursor: pointer; }
+.toc-list li.locked:active { background: transparent; }
+.toc-list li .lock-tag {
+  font-size: 10px; color: #c9a23a; border: 1px solid #e8d9a0;
+  border-radius: 8px; padding: 1px 6px; margin-left: auto;
+}
+.toc-list li.toc-world {
+  display: block; font-weight: 700; font-size: 14px; color: #1a1a1c;
+  background: transparent; cursor: default; padding: 18px 4px 8px;
+  border-bottom: none; border-top: 1px solid #eee;
+}
+.toc-list li.toc-world:active { background: transparent; }
+
+/* 底部：引导聊天 + 阅读按钮 */
+.start-read-bar {
+  text-align: center;
+  padding: 24px 24px calc(28px + var(--safe-bottom));
+  background: transparent;
+}
+.start-read-hint {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  font-size: 12.5px; color: #999; margin-bottom: 22px;
+  letter-spacing: 1.5px;
+}
+.start-read-hint::before,
+.start-read-hint::after {
+  content: "";
+  flex: 1; max-width: 48px; height: 1px;
+  background: linear-gradient(90deg, transparent, #ccc);
+}
+.start-read-hint::after { background: linear-gradient(90deg, #ccc, transparent); }
+.start-read-actions {
+  display: flex; gap: 10px; justify-content: center; align-items: center;
+}
+.start-read-btn {
+  flex: 0 0 auto; width: 55%; min-width: 140px; height: 42px; border-radius: 21px;
+  padding: 0 16px; border: 1.5px solid var(--purple);
+  background: transparent; font-size: 14px; font-weight: 600;
+  color: var(--purple); cursor: pointer; transition: all .2s;
+  white-space: nowrap;
+}
+.start-read-btn:active { background: var(--purple); color: #fff; }
+.intro-bulk-btn {
+  flex: 0 0 auto; width: 40%; min-width: 112px; height: 42px; padding: 0 16px; border-radius: 21px;
+  background: rgba(var(--purple-rgb),.12);
+  color: var(--purple);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  border: 1px solid rgba(var(--purple-rgb),.45); transition: all .15s;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  white-space: nowrap;
+}
+.intro-bulk-btn:active { background: rgba(var(--purple-rgb),.22); border-color: rgba(var(--purple-rgb),.6); }
+
+/* ====== 付费弹窗（全新卡片列表设计，intro/reader/inline 共用） ====== */
+.pay-mask {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 180; opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+.pay-mask.open { opacity: 1; pointer-events: auto; }
+.pay-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: #fff; border-radius: 20px 20px 0 0;
+  padding: 22px 18px calc(20px + var(--safe-bottom));
+  transform: translateY(100%); transition: transform .32s cubic-bezier(.4,0,.2,1);
+  z-index: 181;
+}
+.pay-sheet.open { transform: translateY(0); }
+.pay-sheet-close {
+  position: absolute; top: 16px; right: 16px;
+  width: 28px; height: 28px; border-radius: 50%;
+  border: none; background: rgba(0,0,0,.06); color: #999;
+  font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.pay-sheet-close:active { background: rgba(0,0,0,.14); }
+.pay-sheet-title { font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; letter-spacing: .3px; }
+.pay-sheet-sub { font-size: 13px; color: #9b9ba3; margin-bottom: 16px; }
+
+.pay-card-list { display: flex; flex-direction: column; gap: 10px; }
+.pay-card {
+  display: flex; align-items: center; gap: 12px;
+  background: #f5f6fa; border: 1.5px solid transparent;
+  border-radius: 14px;
+  padding: 14px 14px;
+  cursor: pointer; transition: all .18s;
+  position: relative;
+}
+.pay-card.selected {
+  background: rgba(var(--purple-rgb), .06);
+  border-color: var(--purple);
+}
+.pay-card:active { transform: scale(.995); }
+.pay-card-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pay-card-title { font-size: 15px; font-weight: 600; color: #1a1a1a; letter-spacing: .2px; display: flex; align-items: center; gap: 6px; }
+.pay-card-badge {
+  display: inline-flex; align-items: center;
+  background: linear-gradient(135deg, #ff7a4d, #ff5a3c);
+  color: #fff; font-size: 11px; font-weight: 700;
+  padding: 2px 7px; border-radius: 8px 8px 8px 2px;
+  letter-spacing: .3px;
+}
+.pay-card-desc { font-size: 12px; color: #9b9ba3; }
+.pay-card-price { display: flex; align-items: center; gap: 3px; font-size: 16px; font-weight: 700; color: #1a1a1a; }
+.pay-card-price-icon {
+  display: inline-block; width: 15px; height: 15px;
+  background: linear-gradient(135deg, #b47dff, #7c4dff); color: #fff;
+  border-radius: 4px; font-size: 11px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-left: 1px;
+}
+.pay-card-price-old { font-size: 11.5px; color: #b8b8c0; text-decoration: line-through; text-align: right; margin-top: 2px; }
+.pay-card-radio {
+  flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%;
+  border: 1.5px solid #d0d0d8; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .18s;
+}
+.pay-card.selected .pay-card-radio {
+  border-color: var(--purple); background: var(--purple);
+}
+.pay-card-radio::after {
+  content: ""; width: 8px; height: 4px;
+  border-left: 2px solid #fff; border-bottom: 2px solid #fff;
+  transform: rotate(-45deg) translate(1px, -1px); opacity: 0; transition: opacity .18s;
+}
+.pay-card.selected .pay-card-radio::after { opacity: 1; }
+.pay-card-right { display: flex; flex-direction: column; align-items: flex-end; }
+
+/* 自动付费开关行 */
+.pay-auto-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; margin: 16px 0 14px;
+  font-size: 13px; color: #7a7a86; cursor: pointer;
+}
+.pay-auto-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #d3d3dc; border: none;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s;
+}
+.pay-auto-dot::after {
+  content: ""; width: 7px; height: 3.5px;
+  border-left: 1.8px solid #fff; border-bottom: 1.8px solid #fff;
+  transform: rotate(-45deg) translate(0.5px, -.5px); opacity: 0; transition: opacity .18s;
+}
+.pay-auto-row.on .pay-auto-dot { background: var(--purple); }
+.pay-auto-row.on .pay-auto-dot::after { opacity: 1; }
+.pay-auto-help { color: #7a7a86; cursor: pointer; }
+.pay-auto-help::after { content: " >"; }
+
+/* 确认购买主按钮 */
+.pay-confirm-btn {
+  width: 100%; height: 48px; border: none; border-radius: 24px;
+  background: linear-gradient(135deg, #c084fc, #a855f7);
+  color: #fff; font-size: 16px; font-weight: 600; letter-spacing: .5px;
+  cursor: pointer; transition: all .18s;
+  box-shadow: 0 6px 16px rgba(var(--purple-rgb), .28);
+}
+.pay-confirm-btn:active { transform: scale(.99); box-shadow: 0 3px 10px rgba(var(--purple-rgb), .22); }
+.pay-confirm-btn:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+
+/* 自动付费说明弹窗 */
+.auto-info-mask {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 200; opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+.auto-info-mask.open { opacity: 1; pointer-events: auto; }
+
+/* 章末内联付费块（简化版：一段引导 + 主 CTA） */
+.inline-pay-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  margin: 40px auto 0; padding: 24px 0 0;
+  max-width: 300px;
+}
+.inline-pay-tip { font-size: 14px; color: #7a7a86; }
+.inline-pay-btn {
+  min-width: 200px; height: 44px; border: none; border-radius: 22px;
+  background: linear-gradient(135deg, #c084fc, #a855f7);
+  color: #fff; font-size: 15px; font-weight: 600; letter-spacing: .5px;
+  cursor: pointer; box-shadow: 0 6px 14px rgba(var(--purple-rgb), .28);
+}
+.inline-pay-btn:active { transform: scale(.99); }
+.inline-pay-balance { font-size: 12px; color: #b0b0b8; }
+.inline-pay-balance b { color: var(--purple); font-weight: 600; }
+.locked-next-page { display: flex; flex-direction: column; justify-content: center; }
+.locked-next-page .reader-content { display: flex; flex-direction: column; justify-content: center; width: 100%; height: 100%; }
+.auto-info-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: #fff; border-radius: 20px 20px 0 0;
+  padding: 22px 20px calc(20px + var(--safe-bottom));
+  transform: translateY(100%); transition: transform .32s cubic-bezier(.4,0,.2,1);
+  z-index: 201;
+}
+.auto-info-sheet.open { transform: translateY(0); }
+.auto-info-close {
+  position: absolute; top: 16px; right: 16px;
+  width: 28px; height: 28px; border-radius: 50%;
+  border: none; background: rgba(0,0,0,.06); color: #999;
+  font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.auto-info-title { font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 14px; letter-spacing: .3px; }
+.auto-info-body { font-size: 14px; color: #4a4a55; line-height: 1.7; margin-bottom: 22px; }
+.auto-info-body p { margin: 0 0 10px; }
+.auto-info-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 0; margin-bottom: 8px;
+  font-size: 13.5px; color: #4a4a55;
+}
+.auto-info-brand-icon {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(var(--purple-rgb), .12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+}
+
+/* ============ 视图切换 ============ */
+.screen { position: absolute; inset: 0; display: none; flex-direction: column; }
+.screen.active { display: flex; }
+
+/* ============ 阅读页（reader）：微信读书风 ============ */
+#reader { background-color: #e9f1fa; background-image: url("assets/bg-reader-default.jpg"); background-size: cover; background-position: center; }
+#reader.theme-white { background-image: none; background-color: #f5edd8; }
+#reader.theme-green { background-image: none; background-color: #e8f3e4; }
+#reader.theme-night { background-image: none; background-color: #1a1a1c; }
+#reader.theme-xuanzhi { background-image: url("assets/bg-xuanzhi.jpg"); background-size: cover; background-position: center; background-color: #f7f3eb; }
+#reader.theme-paper1 { background-image: url("assets/bg-paper1.jpg"); background-size: cover; background-position: center; background-color: #f7f5ee; }
+#reader.theme-gradient { background-image: url("assets/bg-gradient.png"); background-size: cover; background-position: center; background-color: #fbeee9; }
+#reader .reader-topbar {
+  flex: 0 0 auto; display: flex; align-items: flex-start;
+  padding: calc(52px + var(--safe-top)) 14px 8px;
+  z-index: 40; color: #33404f;
+}
+#reader.theme-white .reader-topbar,
+#reader.theme-xuanzhi .reader-topbar,
+#reader.theme-paper1 .reader-topbar { color: #3d3424; }
+#reader.theme-green .reader-topbar { color: #2a3828; }
+#reader.theme-night .reader-topbar { color: #b5b5b9; }
+#reader.theme-gradient .reader-topbar { color: #5a4a44; }
+.t-btn {
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border: none; background: none; color: inherit;
+  border-radius: 50%; flex-shrink: 0;
+}
+.t-btn:active { background: rgba(0,0,0,.06); }
+.chapter-info { margin-left: 4px; padding-top: 2px; flex: 1; min-width: 0; }
+.chapter-info .chapter-name {
+  font-size: 14px; font-weight: 400; line-height: 1.35; letter-spacing: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: inherit; opacity: .8;
+}
+.chapter-info .chapter-sub { font-size: 11px; margin-top: 1px; letter-spacing: .5px; opacity: .55; }
+.reader-topbar .t-btn:last-child { font-size: 20px; }
+.reader-scroll { flex: 1 1 0px; position: relative; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+.reader-scroll::-webkit-scrollbar { display: none; }
+.reader-track { display: block; width: 100%; }
+.reader-page-item {
+  display: block; width: 100%;
+  padding: 4px 24px 40px; box-sizing: border-box;
+  color: #33404f;
+}
+#reader.theme-white .reader-page-item,
+#reader.theme-xuanzhi .reader-page-item,
+#reader.theme-paper1 .reader-page-item { color: #3d3424; }
+#reader.theme-green .reader-page-item { color: #2a3828; }
+#reader.theme-night .reader-page-item { color: #9a9a9e; }
+#reader.theme-gradient .reader-page-item { color: #5a4a44; }
+.reader-content p { line-height: 1.9; margin: 0 0 18px; text-indent: 2em; letter-spacing: .2px; }
+.chapter-end-tip {
+  display: flex; align-items: center; justify-content: center;
+  gap: 14px; margin: 34px 0 6px; opacity: .55;
+}
+.chapter-end-tip .end-line { flex: 0 0 auto; width: 34px; height: 1px; background: currentColor; opacity: .5; }
+.chapter-end-tip .end-text { font-size: 13px; letter-spacing: 1.5px; white-space: nowrap; }
+.reader-bottombar {
+  flex: 0 0 auto;
+  height: calc(48px + var(--safe-bottom)); padding-bottom: var(--safe-bottom);
+  display: flex; align-items: center; justify-content: space-around;
+  background: rgba(255,255,255,.6); border-top: 1px solid rgba(0,0,0,.04); z-index: 40;
+}
+#reader.theme-night .reader-bottombar { background: rgba(28,28,30,.9); border-top-color: rgba(255,255,255,.05); }
+.b-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  font-size: 10.5px; color: #666; background: none; border: none; cursor: pointer; padding: 4px 12px;
+}
+#reader.theme-night .b-btn { color: #b5b5b9; }
+.b-btn .ico { line-height: 1; display: flex; align-items: center; justify-content: center; }
+.b-btn .ico svg { width: 22px; height: 22px; display: block; }
+.b-btn .chev { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.b-btn.next-chat { color: var(--purple); font-weight: 600; }
+.b-btn.next-chat .chev { display: none; }
+.b-btn.disabled { opacity: .35; pointer-events: none; }
+
+/* 章末 CTA "去聊天" */
+.chapter-end-cta {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  margin: 36px 0 20px; opacity: .85;
+}
+.chapter-end-cta .cta-btn {
+  width: 76px; height: 76px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(var(--purple-rgb), .1);
+  border: 1px solid rgba(var(--purple-rgb), .35);
+  cursor: pointer; transition: all .15s;
+}
+.chapter-end-cta .cta-btn:active { transform: scale(.94); background: rgba(var(--purple-rgb), .18); }
+.chapter-end-cta .cta-btn svg { width: 32px; height: 32px; stroke: var(--purple); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.chapter-end-cta .cta-label { font-size: 13px; color: var(--purple); font-weight: 500; }
+#reader.theme-night .chapter-end-cta .cta-btn { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.16); }
+
+/* 目录抽屉 */
+.drawer-mask { position: absolute; inset: 0; background: rgba(0,0,0,.35); z-index: 60; opacity: 0; pointer-events: none; transition: opacity .25s; }
+.drawer-mask.open { opacity: 1; pointer-events: auto; }
+.drawer {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 76%; max-width: 300px;
+  background: #fff; z-index: 61; transform: translateX(-100%);
+  transition: transform .28s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column;
+}
+.drawer.open { transform: translateX(0); }
+.drawer-head { padding: calc(18px + max(var(--safe-top), 60px)) 18px 12px; border-bottom: 1px solid #f0f0f0; }
+.drawer-head .d-title { font-size: 15px; font-weight: 700; }
+.drawer-head .d-meta { font-size: 11.5px; color: #aaa; margin-top: 3px; }
+.drawer-list { flex: 1; overflow-y: auto; padding: 4px 0 calc(20px + var(--safe-bottom)); list-style: none; margin: 0; }
+.drawer-list li {
+  padding: 14px 18px; font-size: 14px; color: #333; border-left: 3px solid transparent; cursor: pointer;
+}
+.drawer-list li.active { color: var(--purple); border-left-color: var(--purple); background: rgba(var(--purple-rgb),.06); font-weight: 600; }
+.drawer-list li.locked { color: #b5b5b5; cursor: pointer; }
+.drawer-list li.locked::after { content: "🔒"; margin-left: 6px; font-size: 11px; }
+.drawer-list li.drawer-world {
+  font-weight: 700; font-size: 14px; color: #1a1a1c; border-left-color: transparent;
+  cursor: default; padding: 18px 18px 8px;
+}
+
+/* 设置弹层 */
+.sheet-mask { position: absolute; inset: 0; background: rgba(0,0,0,.35); z-index: 70; opacity: 0; pointer-events: none; transition: opacity .25s; }
+.sheet-mask.open { opacity: 1; pointer-events: auto; }
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; background: #fff; border-radius: 16px 16px 0 0;
+  padding: 18px 20px calc(22px + var(--safe-bottom)); transform: translateY(100%);
+  transition: transform .28s cubic-bezier(.4,0,.2,1); z-index: 71;
+}
+.sheet.open { transform: translateY(0); }
+.sheet-close {
+  position: absolute; top: 14px; right: 16px;
+  width: 30px; height: 30px; border-radius: 50%;
+  border: none; background: rgba(0,0,0,.06); color: #999;
+  font-size: 15px; cursor: pointer; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+}
+.sheet-block { margin-bottom: 20px; }
+.sheet-block:last-child { margin-bottom: 0; }
+.sheet-label { font-size: 12.5px; color: #999; margin-bottom: 10px; }
+.font-ctrl { display: flex; align-items: center; gap: 12px; }
+.font-ctrl button {
+  flex: 1; height: 40px; border: 1px solid #e5e5e5; background: #fafafa;
+  border-radius: 10px; font-size: 17px; cursor: pointer; color: #333;
+}
+.font-ctrl .fs-val { flex: 0 0 56px; text-align: center; font-size: 15px; font-weight: 600; }
+.theme-row { display: flex; gap: 9px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.theme-row::-webkit-scrollbar { display: none; }
+.theme-dot {
+  width: 36px; height: 36px; flex: 0 0 auto; border-radius: 50%; cursor: pointer;
+  position: relative; border: 2px solid transparent; overflow: hidden;
+}
+.theme-dot.active { border-color: var(--purple); }
+.theme-dot.active::after {
+  content: "✓"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 15px; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+
+/* 内联付费页（末页有内容但下一章未解锁）：复用 pay-sheet 内容布局 */
+.inline-pay-wrap {
+  display: flex; flex-direction: column;
+  margin-top: 12px;
+  padding: 4px 0 8px;
+}
+.inline-pay-wrap .pay-sheet-title { margin-top: 0; margin-bottom: 4px; }
+.inline-pay-wrap .pay-sheet-sub { margin-bottom: 14px; }
+.locked-next-page { display: flex; flex-direction: column; justify-content: flex-end; }
+.locked-next-page .reader-content { display: flex; flex-direction: column; justify-content: flex-end; width: 100%; }
+.locked-next-page .inline-pay-wrap { margin-top: 0; padding-top: 0; }
+
+/* ============ 页面1：游乐场 ============ */
+#playground { background: #f4f5f7; padding-top: calc(44px + var(--safe-top)); }
+/* 游乐场页的导航栏改为正常流布局，占据真实空间 */
+#playground .navbar {
+  position: relative; top: auto; left: auto; right: auto;
+  flex-shrink: 0; height: 48px;
+}
+.pg-scroll {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 8px 14px calc(20px + var(--safe-bottom));
+  scrollbar-width: none;
+}
+.pg-scroll::-webkit-scrollbar { display: none; }
+.pg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.pg-card {
+  height: 290px; display: flex; flex-direction: column;
+  background: #fff; border-radius: 14px; overflow: hidden; cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,.05); transition: transform .15s;
+}
+.pg-card:active { transform: scale(.97); }
+.pg-cover { position: relative; width: 100%; flex: 1; min-height: 0; overflow: hidden; }
+.pg-cover .badge {
+  position: absolute; top: 7px; left: 7px; z-index: 2;
+  display: flex; gap: 5px; align-items: center;
+}
+.pg-cover .badge img {
+  height: 20px; width: auto; border-radius: 4px;
+  object-fit: contain;
+  filter: saturate(2.8) contrast(1.15) brightness(.95);
+  flex-shrink: 0;
+}
+.pg-body { padding: 10px 11px 12px; }
+.pg-name { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+.pg-desc {
+  font-size: 11.5px; color: #999; line-height: 1.45; height: 33px;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.pg-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 8px; font-size: 11px; color: #aaa;
+}
+.pg-price { display: flex; align-items: center; gap: 3px; color: #333; font-weight: 700; }
+.pg-price .price-icon { width: 14px; height: 14px; object-fit: contain; }
+.pg-price .old { color: #ccc; text-decoration: line-through; font-weight: 400; margin-left: 2px; }
+.pg-plays { display: flex; align-items: center; gap: 3px; }
+.pg-plays .play-icon { width: 13px; height: 13px; object-fit: contain; opacity: .55; }
+
+/* 封面：真实图片（只匹配直接子级img，不污染badge内的img） */
+.pg-cover > img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+/* 未配图的卡片保留渐变兜底 */
+.cv-billiard{ background: linear-gradient(135deg,#3a3d5c,#565a7a); }
+.cv-eye     { background: linear-gradient(120deg,#4a90d9,#8ad0e0,#c7a8e8); }
+.cv-turtle  { background: linear-gradient(135deg,#c9b8e8,#d8c4e0); }
+.cv-emoji { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:46px; opacity:.9; }
+
+/* ============ 页面2：解锁页 ============ */
+#unlock { background: linear-gradient(180deg,#eef0f7 0%,#f3f2f8 40%,#f4f5f7 100%); }
+.uk-scroll {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: calc(96px + var(--safe-top)) 22px 0;
+  display: flex; flex-direction: column; align-items: center;
+  scrollbar-width: none;
+}
+.uk-scroll::-webkit-scrollbar { display: none; }
+.uk-hero {
+  width: 210px; height: 195px; border-radius: 22px; margin: 8px auto 22px;
+  background: linear-gradient(135deg,#4fc3f7 0%,#3b82f6 45%,#22d3aa 100%);
+  box-shadow: 0 12px 30px rgba(59,130,246,.25);
+}
+.uk-title { font-size: 25px; font-weight: 800; color: var(--ink); text-align: center; margin-bottom: 26px; letter-spacing: .5px; }
+.uk-title .hl { color: var(--purple); }
+
+.uk-card {
+  width: 100%; display: flex; align-items: flex-start; gap: 14px;
+  background: #fff; border-radius: 18px; padding: 18px 18px;
+  margin-bottom: 14px; box-shadow: 0 4px 16px rgba(0,0,0,.05);
+  cursor: pointer; transition: transform .15s, box-shadow .15s; position: relative;
+}
+.uk-card:active { transform: scale(.985); }
+.uk-card.clickable::after {
+  content: ""; position: absolute; inset: 0; border-radius: 18px;
+  border: 2px solid transparent; transition: border-color .2s;
+}
+.uk-card.pulse::after { border-color: rgba(var(--purple-rgb),.5); }
+.uk-card-icon {
+  flex-shrink: 0; width: 42px; height: 42px; border-radius: 12px;
+  background: var(--purple-soft); color: var(--purple);
+  display: flex; align-items: center; justify-content: center;
+}
+.uk-card-icon svg { width: 24px; height: 24px; }
+.uk-card-text { flex: 1; min-width: 0; padding-top: 1px; }
+.uk-card-title { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 5px; }
+.uk-card-desc { font-size: 12.5px; color: #999; line-height: 1.55; }
+.uk-card-summary {
+  margin-top: 8px; font-size: 12px; color: var(--purple); font-weight: 600;
+  display: none;
+}
+.uk-card-summary.show { display: block; }
+
+/* 引导点击手指动效 */
+.uk-guide {
+  align-self: flex-end; display: flex; align-items: center; gap: 6px;
+  margin: 2px 4px 0; font-size: 13px; color: var(--ink); font-weight: 500;
+}
+.uk-guide .finger {
+  font-size: 22px; display: inline-block;
+  animation: finger-tap 1.5s ease-in-out infinite;
+}
+@keyframes finger-tap {
+  0%,100% { transform: translate(0,0) rotate(-8deg); }
+  30% { transform: translate(-4px,-6px) rotate(-8deg); }
+  45% { transform: translate(0,0) rotate(-8deg) scale(.92); }
+  60% { transform: translate(0,0) rotate(-8deg) scale(1); }
+}
+
+/* 底部解锁按钮区 */
+.uk-action { width: 100%; padding: 14px 22px calc(12px + var(--safe-bottom)); }
+/* 双段式解锁按钮：左「解锁第一章」右「⚡限时免费」 */
+.uk-unlock-btn {
+  width: 100%; height: 54px; border-radius: 27px; border: none;
+  background: linear-gradient(135deg,#b98bf3 0%,#a06bef 55%,#8b5cf6 100%);
+  color: #fff; cursor: pointer; transition: transform .15s, filter .15s;
+  box-shadow: 0 8px 22px rgba(139,92,246,.35);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+}
+.uk-unlock-btn:active { transform: scale(.98); filter: brightness(.96); }
+.uk-unlock-btn .u-main { font-size: 17px; font-weight: 700; letter-spacing: 1px; }
+.uk-unlock-btn .u-free { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 3px; }
+.uk-unlock-btn .u-free .bolt { font-size: 14px; }
+/* 电量余额告知 */
+.uk-balance {
+  text-align: center; font-size: 12px; color: #9aa0ab;
+  margin-top: 12px; letter-spacing: .3px;
+}
+.uk-balance .bal-num { color: var(--purple); font-weight: 700; }
+.uk-balance .bolt { color: #f5a623; font-weight: 700; }
+/* 兼容旧 uk-btn（简介页开始阅读复用） */
+.uk-btn {
+  width: 100%; height: 52px; border-radius: 26px; border: none;
+  background: linear-gradient(135deg,#b06bf5,#8b5cf6);
+  color: #fff; font-size: 17px; font-weight: 700; letter-spacing: 1px;
+  cursor: pointer; transition: transform .15s, filter .15s;
+  box-shadow: 0 8px 22px rgba(139,92,246,.35);
+}
+.uk-btn:active { transform: scale(.98); filter: brightness(.96); }
+
+/* ============ 内容偏好半弹窗 ============ */
+.sheet-mask {
+  position: absolute; inset: 0; background: rgba(0,0,0,.35);
+  opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 90;
+}
+.sheet-mask.show { opacity: 1; pointer-events: auto; }
+.pref-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 95;
+  background: #fff; border-radius: 24px 24px 0 0;
+  padding: 22px 22px calc(24px + var(--safe-bottom));
+  transform: translateY(100%); transition: transform .32s cubic-bezier(.22,1,.36,1);
+  max-height: 82%; overflow-y: auto; scrollbar-width: none;
+}
+.pref-sheet::-webkit-scrollbar { display: none; }
+.pref-sheet.show { transform: translateY(0); }
+.pref-head { position: relative; margin-bottom: 18px; }
+.pref-title { font-size: 20px; font-weight: 800; color: var(--ink); margin-bottom: 6px; }
+.pref-sub { font-size: 12.5px; color: #999; line-height: 1.5; padding-right: 30px; }
+.pref-close {
+  position: absolute; top: -2px; right: 0; width: 30px; height: 30px; border-radius: 50%;
+  border: none; background: #f0f0f0; color: #888; font-size: 15px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.pref-close:active { background: #e2e2e2; }
+
+.pref-group { margin-bottom: 18px; }
+.pref-label { font-size: 15px; font-weight: 500; color: var(--ink); margin-bottom: 12px; }
+.pref-tags { display: flex; flex-wrap: wrap; gap: 10px; }
+.pref-tag {
+  font-size: 13.5px; color: #555; border: 1.5px solid #e5e5e5;
+  background: #f7f7f8; padding: 9px 18px; border-radius: 12px;
+  cursor: pointer; transition: all .15s; white-space: nowrap; font-weight: 500;
+}
+.pref-tag:active { transform: scale(.96); }
+.pref-tag.active {
+  color: var(--purple); border-color: var(--purple);
+  background: var(--purple-soft); font-weight: 600;
+}
+
+.pref-refresh-row { display: flex; justify-content: flex-end; margin-top: 10px; }
+.pref-refresh {
+  font-size: 12.5px; color: var(--purple); font-weight: 600;
+  border: none; background: transparent; cursor: pointer;
+  display: flex; align-items: center; gap: 3px;
+}
+.pref-refresh:active { opacity: .5; }
+
+/* 设定说明卡片 */
+.pref-setting-card {
+  background: linear-gradient(135deg,#faf7ff,#f5f0fc);
+  border-radius: 14px; padding: 15px 16px 14px; margin-top: 4px;
+}
+.pref-setting-text { font-size: 13px; line-height: 1.7; color: #444; margin-bottom: 12px; }
+.pref-setting-text .s-desc { display: inline; }
+.pref-setting-text .s-flavor { color: var(--purple); font-weight: 700; }
+.pref-setting-text .s-char { color: var(--purple); font-weight: 600; }
+.pref-swap {
+  height: 34px; padding: 0 16px; border-radius: 17px; font-size: 12.5px; font-weight: 600;
+  border: 1.5px solid var(--purple); background: transparent; color: var(--purple);
+  cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+}
+.pref-swap:active { transform: scale(.96); opacity: .7; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(10px);
+  background: rgba(0,0,0,.8); color: #fff; font-size: 13px; padding: 10px 18px;
+  border-radius: 20px; opacity: 0; transition: .3s; pointer-events: none; z-index: 999;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <!-- 状态栏 -->
+    <div class="statusbar">
+      <span id="statusTime">9:00</span>
+      <span class="icons"><span>●●●</span><span>⌃</span><span class="bat"></span></span>
+    </div>
+
+    <!-- ========== 页面1：游乐场 ========== -->
+    <div class="screen active" id="playground">
+      <div class="navbar">
+        <span class="nav-back"><svg class="chev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span>
+        <span class="nav-title">游乐场</span>
+        <span class="nav-user"><svg class="chev" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span>
+      </div>
+      <div class="pg-scroll">
+        <div class="pg-grid">
+          <!-- Ta的日记 -->
+          <div class="pg-card">
+            <div class="pg-cover"><img src="demo-assets/image 1.png" alt="Ta的日记"><div class="badge"><img src="demo-assets/限免tag.png" alt="限免"></div></div>
+            <div class="pg-body">
+              <div class="pg-name">Ta的日记</div>
+              <div class="pg-desc">探索Ta的秘密日记，揭开那些藏在文字里的故事</div>
+              <div class="pg-foot"><span class="pg-price"><img class="price-icon" src="demo-assets/power.png" alt=""> 0 <span class="old">200电量</span></span><span class="pg-plays"><img class="play-icon" src="demo-assets/game.png" alt=""> 57人玩过</span></div>
+            </div>
+          </div>
+          <!-- 和Ta的专属小说 -->
+          <div class="pg-card" id="cardNovel">
+            <div class="pg-cover"><img src="demo-assets/cover 3.png" alt="专属小说"><div class="badge"><img src="demo-assets/限免tag.png" alt="限免"><img src="demo-assets/内测中tag.png" alt="内测中"></div></div>
+            <div class="pg-body">
+              <div class="pg-name">和 Ta 的专属小说</div>
+              <div class="pg-desc">共同创造一段独一无二的专属故事篇章</div>
+              <div class="pg-foot"><span class="pg-price"><img class="price-icon" src="demo-assets/power.png" alt=""> 0 <span class="old">200电量</span></span><span class="pg-plays"><img class="play-icon" src="demo-assets/game.png" alt=""> 57人玩过</span></div>
+            </div>
+          </div>
+          <!-- 桌球挑战 -->
+          <div class="pg-card">
+            <div class="pg-cover"><img src="demo-assets/image 4.png" alt="桌球挑战"><div class="badge"><img src="demo-assets/上新tag.png" alt="上新"></div></div>
+            <div class="pg-body">
+              <div class="pg-name">和TA的桌球挑战 🎱</div>
+              <div class="pg-desc">在线桌球对决，与好友一起切磋球技</div>
+              <div class="pg-foot"><span class="pg-price"><img class="price-icon" src="demo-assets/power.png" alt=""> 150</span><span class="pg-plays"><img class="play-icon" src="demo-assets/game.png" alt=""> 25w人玩过</span></div>
+            </div>
+          </div>
+          <!-- CP相性 -->
+          <div class="pg-card">
+            <div class="pg-cover"><img src="demo-assets/image 2.png" alt="CP相性"></div>
+            <div class="pg-body">
+              <div class="pg-name">CP相性100问</div>
+              <div class="pg-desc">趣味语音匹配玩法，邂逅你的有缘人</div>
+              <div class="pg-foot"><span class="pg-price"><img class="price-icon" src="demo-assets/power.png" alt=""> 300</span><span class="pg-plays"><img class="play-icon" src="demo-assets/game.png" alt=""> 25w人玩过</span></div>
+            </div>
+          </div>
+          <!-- 超级眼力 -->
+          <div class="pg-card">
+            <div class="pg-cover cv-eye"><div class="cv-emoji">👀</div></div>
+            <div class="pg-body">
+              <div class="pg-name">谁是超级眼力大王？</div>
+              <div class="pg-desc">我服了，你能找出来吗</div>
+              <div class="pg-foot"><span class="pg-price"><img class="price-icon" src="demo-assets/power.png" alt=""> 0</span><span class="pg-plays"><img class="play-icon" src="demo-assets/game.png" alt=""> 25w人玩过</span></div>
+            </div>
+          </div>
+          <!-- 海龟汤 -->
+          <div class="pg-card">
+            <div class="pg-cover cv-turtle"><div class="cv-emoji">🐢</div></div>
+            <div class="pg-body">
+              <div class="pg-name">海龟汤</div>
+              <div class="pg-desc">沉浸式角色扮演推理，解锁百种剧本</div>
+              <div class="pg-foot"><span class="pg-price"><img class="price-icon" src="demo-assets/power.png" alt=""> 300</span><span class="pg-plays"><img class="play-icon" src="demo-assets/game.png" alt=""> 25w人玩过</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 页面2：解锁页 ========== -->
+    <div class="screen" id="unlock">
+      <div class="navbar">
+        <span class="nav-back" id="unlockBack"><svg class="chev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span>
+      </div>
+      <div class="uk-scroll">
+        <div class="uk-hero"></div>
+        <div class="uk-title">开启和 <span class="hl">Ta</span> 的专属小说</div>
+
+        <!-- 一键成书 -->
+        <div class="uk-card">
+          <div class="uk-card-icon">
+            <svg viewBox="0 0 40 40" fill="none"><rect x="6" y="6" width="22" height="28" rx="3" stroke="currentColor" stroke-width="2.4"/><line x1="11" y1="14" x2="23" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="11" y1="20" x2="23" y2="20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="11" y1="26" x2="17" y2="26" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="30" cy="30" r="7" fill="#a855f7"/><path d="M27.5 30l1.8 1.8 3.5-3.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="uk-card-text">
+            <div class="uk-card-title">一键成书</div>
+            <div class="uk-card-desc">把你和 Ta 的聊天，编成一本属于你们的小说，随聊天持续更新。</div>
+          </div>
+        </div>
+
+        <!-- 内容偏好（可点击 → 弹窗） -->
+        <div class="uk-card clickable pulse" id="cardPref">
+          <div class="uk-card-icon">
+            <svg viewBox="0 0 40 40" fill="none"><path d="M20 32s-11-6.5-11-14a6.5 6.5 0 0 1 11-4.6A6.5 6.5 0 0 1 31 18c0 7.5-11 14-11 14z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="uk-card-text">
+            <div class="uk-card-title">内容偏好</div>
+            <div class="uk-card-desc">选择你的喜爱设定，将直接影响剧情，可随时调整</div>
+            <div class="uk-card-summary" id="prefSummary"></div>
+          </div>
+        </div>
+
+        <!-- 引导点击动效 -->
+        <div class="uk-guide" id="ukGuide">
+          <span class="finger">👆</span>
+          <span>引导点击动效</span>
+        </div>
+      </div>
+
+      <!-- 底部：解锁第一章 + 电量余额 -->
+      <div class="uk-action">
+        <button class="uk-unlock-btn" id="unlockChapterBtn">
+          <span class="u-main">解锁第一章</span>
+          <span class="u-free"><span class="bolt">⚡</span>限时免费</span>
+        </button>
+        <div class="uk-balance">当前电量余额 <span class="bolt">⚡</span><span class="bal-num">500</span> 电量</div>
+      </div>
+    </div>
+
+    <!-- ========== 内容偏好半弹窗 ========== -->
+    <div class="sheet-mask" id="sheetMask"></div>
+    <div class="pref-sheet" id="prefSheet">
+      <div class="pref-head">
+        <div class="pref-title">选择你的喜好</div>
+        <div class="pref-sub">单选，将直接影响首章的剧情，可在故事设置里随时调整</div>
+        <button class="pref-close" id="prefClose">✕</button>
+      </div>
+
+      <!-- 小说频道 -->
+      <div class="pref-group">
+        <div class="pref-label">小说频道</div>
+        <div class="pref-tags" id="channelTags"></div>
+      </div>
+
+      <!-- 故事设定 -->
+      <div class="pref-group">
+        <div class="pref-label">故事设定</div>
+        <div class="pref-tags" id="flavorTags"></div>
+        <div class="pref-refresh-row">
+          <button class="pref-refresh" id="flavorRefresh">↻ 换一换</button>
+        </div>
+      </div>
+
+      <!-- 设定说明 -->
+      <div class="pref-setting-card">
+        <div class="pref-setting-text" id="settingText"></div>
+        <button class="pref-swap" id="swapBtn">⇄ 角色互换</button>
+      </div>
+    </div>
+
+    <!-- ========== 页面3：Loading 小说载入中 ========== -->
+    <div class="screen" id="loading">
+      <div class="navbar navbar-plain">
+        <span class="nav-back"><svg class="chev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span>
+      </div>
+      <div class="ld-wrap">
+        <img class="ld-mascot" src="demo-assets/loading-mascot.png" alt="载入中">
+        <div class="ld-title">小说载入中</div>
+        <div class="ld-sub">未知的结局，才是故事最迷人的地方</div>
+      </div>
+    </div>
+
+    <!-- ========== 页面4：小说简介 ========== -->
+    <div class="screen" id="intro">
+      <button class="intro-back" id="introBack" title="返回"><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+
+      <div class="intro-scroll" id="introScroll">
+        <div class="intro-cover-wrap">
+          <img class="cover-img" id="coverImg" src="demo-assets/cover 2.png" alt="">
+        </div>
+        <div class="intro-body">
+          <h1 class="novel-title" id="novelTitle">无限小说创世神</h1>
+          <div class="author-row">
+            <span class="author-name" id="authorName">AI基于对话内容生成</span>
+          </div>
+          <div class="intro-section">
+            <div class="section-head">简介</div>
+            <div class="intro-desc" id="introDesc">
+              <div class="novel-intro" id="novelIntro"><p>警告！你已被C项目中心收录进模拟器。</p><p>这是一款风靡全球的人生模拟器——足够有趣，足够狗血，自由度拉满。模拟器里藏着无数空间，每个空间都有诡异的规则，而闯入空间、摸清规则，正是C中心成员唯一的任务。中心里能人辈出，但真正让人捉摸不透的，从来不是那些诡异的规则，而是一位新来的用户……以及ta所扮演的角色们。</p><p>在这里，你将魂穿进不同角色，在模拟器中与席恩相遇。你和席恩的每一句对话，都会左右这部小说的走向——聊得越多，剧情越丰富。</p></div>
+              <span class="intro-more" id="introMore">更多</span>
+            </div>
+          </div>
+          <div class="toc-preview">
+            <div class="section-head">目录</div>
+            <ul class="toc-list" id="tocList">
+              <li class="toc-world">第一个世界 · 我偏要和他过不去</li>
+              <li data-idx="0"><span>第1章 偏要撞上去</span><span class="arrow"><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></li>
+              <li class="locked" data-idx="1"><span>第2章 他的笑很刺眼</span><span class="lock-tag">付费</span></li>
+              <li class="locked" data-idx="2"><span>第3章 输给一句晚安</span><span class="lock-tag">付费</span></li>
+            </ul>
+          </div>
+          <div class="start-read-bar">
+            <div class="start-read-hint">继续聊天触发小说更新</div>
+            <div class="start-read-actions">
+              <button class="intro-bulk-btn" id="introBulkBtn"><span>多章折扣</span></button>
+              <button class="start-read-btn" id="startReadBtn">点击开始阅读</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 简介页付费弹窗（与 reader 共用样式，独立实例以便在 intro 层显示） -->
+      <div class="pay-mask" id="introPayMask"></div>
+      <div class="pay-sheet" id="introPaySheet">
+        <button class="pay-sheet-close" id="introPayClose">✕</button>
+        <div class="pay-sheet-title">解锁下一章</div>
+        <div class="pay-sheet-sub">购买章节，开启小说更新</div>
+        <div class="pay-card-list" id="introPayCards"></div>
+        <div class="pay-auto-row" id="introPayAuto">
+          <span class="pay-auto-dot" data-role="toggle"></span>
+          <span data-role="toggle">开启自动付费（享 8.5 折）</span>
+          <span class="pay-auto-help" data-role="info">新章节自动解锁生成</span>
+        </div>
+        <button class="pay-confirm-btn" id="introPayConfirm">确认购买</button>
+      </div>
+    </div>
+
+    <!-- ============ 页面5：阅读页 ============ -->
+    <div class="screen theme-blue" id="reader">
+      <div class="reader-topbar">
+        <button class="t-btn" id="readerBackBtn" title="返回简介"><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <div class="chapter-info">
+          <div class="chapter-name" id="chapterName">第1章 偏要撞上去</div>
+          <div class="chapter-sub">由 AI 生成</div>
+        </div>
+      </div>
+      <div class="reader-scroll" id="readerScroll">
+        <div class="reader-track" id="readerTrack"></div>
+      </div>
+      <div class="reader-bottombar">
+        <button class="b-btn" id="tocBtnBottom">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span>
+          <span>目录</span>
+        </button>
+        <button class="b-btn" id="fontBtn">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l5-14 5 14M6.2 15h5.6M14 20l3-8 3 8M15 17h4"/></svg></span>
+          <span>字号</span>
+        </button>
+        <button class="b-btn" id="setBtn">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="7" cy="8" r="2.2"/><line x1="10" y1="8" x2="20" y2="8"/><line x1="4" y1="8" x2="5" y2="8"/><circle cx="16" cy="16" r="2.2"/><line x1="4" y1="16" x2="13" y2="16"/><line x1="19" y1="16" x2="20" y2="16"/></svg></span>
+          <span>设置</span>
+        </button>
+      </div>
+
+      <!-- 目录抽屉 -->
+      <div class="drawer-mask" id="drawerMask"></div>
+      <div class="drawer" id="drawer">
+        <div class="drawer-head">
+          <div class="d-title">无限小说创世神</div>
+          <div class="d-meta">共 3 章 · AI 生成</div>
+        </div>
+        <ul class="drawer-list" id="drawerList"></ul>
+      </div>
+
+      <!-- 设置弹层 -->
+      <div class="sheet-mask" id="readerSheetMask"></div>
+      <div class="sheet" id="readerSheet">
+        <button class="sheet-close" id="sheetClose">✕</button>
+        <div class="sheet-block">
+          <div class="sheet-label">字号</div>
+          <div class="font-ctrl">
+            <button id="fontMinus">A−</button>
+            <div class="fs-val" id="fontVal">18</div>
+            <button id="fontPlus">A+</button>
+          </div>
+        </div>
+        <div class="sheet-block">
+          <div class="sheet-label">背景</div>
+          <div class="theme-row" id="themeRow">
+            <div class="theme-dot active" data-theme="theme-blue" style="background:#e9f1fa"></div>
+            <div class="theme-dot" data-theme="theme-white" style="background:#f5edd8"></div>
+            <div class="theme-dot" data-theme="theme-green" style="background:#e8f3e4"></div>
+            <div class="theme-dot" data-theme="theme-gradient" style="background:linear-gradient(135deg,#fbeee9,#f5d5cc)"></div>
+            <div class="theme-dot" data-theme="theme-night" style="background:#1a1a1c"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 阅读页付费弹窗 -->
+      <div class="pay-mask" id="readerPayMask"></div>
+      <div class="pay-sheet" id="readerPaySheet">
+        <button class="pay-sheet-close" id="readerPayClose">✕</button>
+        <div class="pay-sheet-title">解锁下一章</div>
+        <div class="pay-sheet-sub">购买章节，开启小说更新</div>
+        <div class="pay-card-list" id="readerPayCards"></div>
+        <div class="pay-auto-row" id="readerPayAuto">
+          <span class="pay-auto-dot" data-role="toggle"></span>
+          <span data-role="toggle">开启自动付费（享 8.5 折）</span>
+          <span class="pay-auto-help" data-role="info">新章节自动解锁生成</span>
+        </div>
+        <button class="pay-confirm-btn" id="readerPayConfirm">确认购买</button>
+      </div>
+    </div>
+
+    <!-- 自动付费说明弹窗（全局共用，放最外层 phone 容器） -->
+    <div class="auto-info-mask" id="autoInfoMask"></div>
+    <div class="auto-info-sheet" id="autoInfoSheet">
+      <button class="auto-info-close" id="autoInfoClose">✕</button>
+      <div class="auto-info-title">自动付费说明</div>
+      <div class="auto-info-body">
+        <p>开启后，随着对话的发展，将享受 8.5 折优惠自动生成新的故事章节，无需手动解锁。</p>
+        <p>无新对话时，不会自动生成。可在章节内「设置」随时关闭。</p>
+      </div>
+      <div class="auto-info-brand">
+        <span class="auto-info-brand-icon">🐾</span>
+        <span>和 Ta 的专属小说</span>
+      </div>
+      <button class="pay-confirm-btn" id="autoInfoOk">我知道了</button>
+    </div>
+  </div>
+
+<script>
+/* ===== 数据 ===== */
+var CHANNELS = ["女频", "男频", "无cp"];
+var activeChannel = 0;
+
+/* 三个频道各自的故事设定库（原文，{user_name}/{bot_name} 占位） */
+var FLAVOR_LIB = {
+  "男频": [
+    { name: "废柴逆袭", setting: "{user_name}起初被认为毫无天赋，连{bot_name}都摇头叹气。可偏偏这人死磕到底，步步逆袭。当{bot_name}目睹{user_name}大放异彩，才惊觉早已被这个拼命的笨蛋吸引。" },
+    { name: "重生复仇", setting: "{user_name}带着前世被背叛的记忆重活一世，这一次不再任人宰割，步步为营精准复仇。{bot_name}是前世唯一善待过{user_name}的人，这一世{user_name}悄悄把{bot_name}护在身后。" },
+    { name: "苟道流", setting: "{user_name}信奉“苟到最后应有尽有”，低调隐忍、暗中发育，从不强出头。{bot_name}起初不解{user_name}的怯懦，却在一次次危机中发现其深谋远虑，最终被{user_name}稳稳护于身后。" },
+    { name: "系统流", setting: "{user_name}平平无奇，某天却意外绑定神秘系统。从对{bot_name}说土味情话到在{bot_name}面前优雅摔倒，{user_name}一边羞耻一边含泪完成任务，却在一次次任务中悄然走近{bot_name}的心。" },
+    { name: "神豪流", setting: "{user_name}意外坐拥巨额财富，开启能用钱解决的都不叫事的豪横人生。{bot_name}起初对{user_name}嗤之以鼻，却在陷入困境时被{user_name}意外救场。问他图什么，{user_name}轻描淡写：图你啊。" },
+    { name: "无敌流", setting: "{user_name}从一开始就拥有碾压一切的实力，什么阴谋强敌统统不够看。可偏偏这样一个无敌的人，面对{bot_name}时却手足无措——{bot_name}是唯一让{user_name}愿意收起锋芒、笨拙靠近的人。" },
+    { name: "争霸流", setting: "{user_name}在权力与地位的争夺中步步为营、算无遗策，而{bot_name}是这场博弈最大的变数。{user_name}越走越远，却在夜深时盯着{bot_name}低语：这天下归我，那我归谁？" },
+    { name: "守护流", setting: "{user_name}永远站在{bot_name}身后一步之遥，默默挡下所有明枪暗箭。直到某天{bot_name}回头，才发现走过的每一步都铺满了{user_name}无声的付出。" },
+    { name: "开局即巅峰", setting: "{user_name}一出场就站在世界顶端，万人敬仰却索然无味。遇见{bot_name}后迎来最大变数：第一次被拒绝、第一次吃醋、第一次学着爱人——{bot_name}是唯一让{user_name}甘愿走下神坛的人。" },
+    { name: "直播流", setting: "{user_name}以直播为生，镜头前嬉笑整活、粉丝无数却从不露真情。{bot_name}是榜一大哥兼头号黑粉，两人在你来我往中被彼此吸引。当{user_name}说漏嘴喊出{bot_name}的名字，弹幕瞬间爆炸。" },
+    { name: "反派视角流", setting: "{user_name}拿的是反派剧本，按剧情本应处处与{bot_name}作对。可真正交手后却下不了手，一边假装走剧情，一边偷偷给{bot_name}递线索挡灾祸。{bot_name}忍不住笑：你是不是拿错剧本了？" },
+    { name: "假死复生", setting: "{user_name}以某种目的/情势所迫假死遁世，{bot_name}在痛彻心扉后含泪前行。数年后“亡者”归来，两人隔着时光与生死对视，曾经有多痛，重逢时就有多撕心裂肺。" },
+    { name: "复仇", setting: "{user_name}在复仇的关键时刻突然发现，{bot_name}竟是所有悲剧的源头，或是唯一的救赎。站在悬崖边看着{bot_name}的眼睛，前进一步是毁掉他，后退一步是放弃所有——{user_name}竟下不了手。" },
+    { name: "强取豪夺", setting: "{user_name}以权势/武力不择手段掠夺{bot_name}的某物/身心，{bot_name}在反抗中被迫步步沦陷。是恨吗？是屈服吗？还是在一次次的交锋中，不知不觉把心也交了出去？" },
+    { name: "针锋相对", setting: "{user_name}与{bot_name}因立场对立/血仇世怨针锋相对，每一次见面都火花四溅、寸步不让。可在一次次交锋中，欣赏与心动悄然滋生——当刀锋抵在对方颈侧时，手却在发抖。" },
+    { name: "亦敌亦友", setting: "{user_name}与{bot_name}在赛场上厮杀争夺，谁都不愿输给谁。可在一次次针尖对麦芒的比拼中，又发自内心欣赏对方的才华——赢了想第一个告诉对方，输了也只承认输给对方。" },
+    { name: "单元闯关", setting: "{user_name}与{bot_name}被卷入一个又一个环环相扣的关卡副本，每一次都是全新挑战。两人从互不信任到成为彼此最可靠的后盾，在九死一生中默契升级、感情升温。" },
+    { name: "穿越", setting: "{user_name}从现代穿越到古代朝堂或异世大陆，带着现代人的知识与吐槽能力，一边求生一边暗中改变剧情走向，却没料到最大的变数是遇见了{bot_name}。" }
+  ],
+  "女频": [
+    { name: "破镜重圆", setting: "{user_name}与{bot_name}因误会/现实压力决裂，数年后解开误会重归于好。" },
+    { name: "追妻火葬场", setting: "{user_name}曾践踏真心致{bot_name}心灰离去，幡然悔悟后开启卑微追妻模式，在尊严粉碎中痛悟真心，终以极端代价换回破镜重圆或永失所爱的撕裂结局。" },
+    { name: "火葬场文学", setting: "{user_name}曾践踏真心致{bot_name}心灰离去，幡然悔悟后开启卑微追妻模式，在尊严粉碎中痛悟真心，终以极端代价换回破镜重圆或永失所爱的撕裂结局。" },
+    { name: "久别重逢", setting: "{user_name}和{bot_name}因为种种原因分别，多年以后再次重逢。" },
+    { name: "先婚后爱", setting: "{user_name}与{bot_name}因家族安排跳过恋爱直接结婚，起初相敬如“冰”。可在日复一日的相处中，习惯悄然生根、关心无声蔓延——原来谁都没把这段关系只当一纸契约。" },
+    { name: "替身文学", setting: "{user_name}将{bot_name}视为故人替身寄托执念，却在朝夕相处中渐被其独特灵魂撼动。当{bot_name}红着眼问“你看着我时到底在看谁”，{user_name}才惊觉早已分不清谁是替身。" },
+    { name: "世仇联姻", setting: "{user_name}和{bot_name}家族仇恨累累，被迫联姻后互相算计。可算计里多了试探，试探里多了心动。当家族再次兵戎相见，{user_name}站在了{bot_name}身前——哪怕与全世界为敌，我也选你。" },
+    { name: "蓄谋成真", setting: "{user_name}一开始带着某种动机或目的接近{bot_name}，伪装成恰到好处的偶遇。却在日复一日的相处中被{bot_name}的真诚打动——本想骗你的心，结果搭上了自己的心。" },
+    { name: "合约情侣", setting: "{user_name}与{bot_name}因契约/谎言建立虚假关系，约定“只谈交易不谈感情”，却在逢场作戏间产生真情。当契约到期那天，两人都说不出口那句“结束吧”。" },
+    { name: "双向暗恋", setting: "{user_name}和{bot_name}彼此喜欢却都不肯表白，在一次次的试探与错过中消耗时光。直到某个意外把两人推到不得不坦诚的境地——当两人同时脱口而出“我喜欢你”。" },
+    { name: "见家长", setting: "{user_name}和{bot_name}相恋后，{user_name}第一次以恋人身份来到{bot_name}家中做客。面对家人紧张到频频翻车、状况百出，而{bot_name}看着{user_name}笨拙又认真的样子，偷偷牵住了{user_name}的手。" },
+    { name: "偏爱独宠", setting: "{user_name}对别人冷若冰霜，对{bot_name}却细心到连对方自己都没注意到的细节都安排妥帖。当所有人质疑“凭什么对他/她不一样”，{user_name}只说：因为是他/她。" },
+    { name: "白月光回归", setting: "{user_name}心中一直有个念念不忘的白月光。多年后白月光突然回归，旧情未了的两人再次面对彼此，而这一次{user_name}身边早已站了{bot_name}。是重拾旧梦，还是珍惜眼前人？" },
+    { name: "灵魂伴侣", setting: "在危机与重大抉择的瞬间，{user_name}与{bot_name}未经沟通却做出了完美契合的反应。事后回想，两人都困惑于这份仿佛来自灵魂深处的默契——身体比大脑更早认出了对方。" },
+    { name: "双向奔赴", setting: "{user_name}与{bot_name}在经历重重阻碍后，依然坚定地选择彼此。没有误会拖三集，没有小三插足——就是两个人从始至终都朝着对方奔去，哪怕道路崎岖，谁也没有松开过手。" },
+    { name: "天作之合", setting: "{user_name}与{bot_name}各方面都完美契合——性格互补、默契满分、连口味都一样。所有人都觉得他们天生一对，两人自己却傻傻没发现，直到某个瞬间四目相对，心跳漏了一拍。" },
+    { name: "双向救赎", setting: "{user_name}与{bot_name}各自背负心理阴影/血债污名，在自毁式靠近中剖开旧伤，把最不堪的一面暴露在对方面前——两个不完整的人拼在一起，恰好成了完整的彼此。" },
+    { name: "秘密共犯", setting: "{user_name}与{bot_name}因共同背负杀人真相/惊天阴谋，在外界追查中默契同行，成为彼此唯一可以信任的人。当全世界都在追查真相时，只有{bot_name}知道{user_name}的秘密。" },
+    { name: "一方失忆", setting: "{user_name}意外失忆忘了一切，{bot_name}想挽回却始终无动于衷。{bot_name}守着只有自己还记得的爱情，直到{user_name}在深夜说出只属于两人的记忆——原来身体比记忆更诚实。" },
+    { name: "恨海情天", setting: "{user_name}与{bot_name}之间隔着血海深仇，本应是死敌，却在每一次交锋中不受控制地被对方吸引。每一次对视都像在刀尖上跳舞——我恨你恨到骨子里，却也只有你能让我心动。" },
+    { name: "青梅竹马", setting: "{user_name}与{bot_name}自幼相伴成长，从一起爬树捉虫到并肩高考，在彼此生命里从未缺席。当某天突然意识到身边那人早已不只是朋友，才发现水到渠成的爱情最是深情。" },
+    { name: "女强", setting: "{user_name}是独立强大的女性，职场上杀伐果断、从不依附任何人。{bot_name}是唯一不被{user_name}气场劝退的人——不是因为他更强，而是他从不试图让{user_name}变弱。两个完整的人并肩。" },
+    { name: "团宠成长", setting: "{user_name}或{bot_name}在周围人的宠爱与呵护中成长。在温暖有爱的环境中从小被爱包围，却唯独对{bot_name}产生了“想要把这份爱也分给你”的心情。" },
+    { name: "经纪幕后", setting: "{user_name}是{bot_name}的经纪人，在光鲜舞台背后默默操盘一切。{bot_name}是台上万人追捧的明星，却只在{user_name}面前才敢卸下伪装——你在台前万丈光芒，我在幕后只看向你。" },
+    { name: "穿越", setting: "{user_name}或{bot_name}从现代穿越到另一个时空/世界。带着现代人的知识、脑洞和吐槽能力，一边求生一边暗中改变剧情走向，却没料到最大的变数是遇见了{bot_name}。" }
+  ],
+  "无cp": [
+    { name: "青葱校园", setting: "{user_name}与{bot_name}在校园生活的点滴碰撞中萌生青涩情愫，经历成长羁绊。" },
+    { name: "欢喜冤家", setting: "{user_name}与{bot_name}因立场对立/性格相冲陷入毒舌互怼/竞争较劲，却在交锋碰撞/危机共渡中对彼此改观。" },
+    { name: "轻松沙雕", setting: "{user_name}与{bot_name}之间发生一连串令人捧腹的糗事——第一次见面就社死、被迫组队参加奇葩比赛。好好的恋爱硬生生谈成喜剧片，可某个瞬间四目相对，发现对方也在笑。" },
+    { name: "治愈日常", setting: "{user_name}与{bot_name}之间只有一日三餐、四季更迭的平淡日常。是加班深夜桌上悄悄放的热牛奶，是雨天挤在同一把伞下的瞬间。生活很难，但因为有你在，就觉得还能再撑一撑。" },
+    { name: "群像成团", setting: "{user_name}与{bot_name}在一个团队/组合中共同成长，身边有一群性格各异的伙伴，一起哭一起笑一起闯祸一起追梦。整个团都在磕他俩的CP，只有他俩还在装傻。" },
+    { name: "选秀竞技", setting: "{user_name}与{bot_name}在选秀节目中相遇——同一个舞台、同一个梦想，也是同一场残酷的竞争。每次宣布排名时，{user_name}最紧张的不是自己的名次，而是{bot_name}的名字有没有被念到。" },
+    { name: "职场逆袭", setting: "{user_name}从职场最底层做起，被上司PUA、被同事甩锅。{bot_name}是最大的对手，却在{user_name}一次次咬牙站起中从轻视到心动。当{user_name}站上曾遥不可及的位置，{bot_name}第一个伸出手。" },
+    { name: "搭档探案", setting: "{user_name}与{bot_name}因案件成为搭档，一个敏锐直觉，一个冷静推理。两人在抽丝剥茧中默契拉满，却在某个案发现场同时回头看向对方——眼神里除了线索，好像还多了点别的什么。" },
+    { name: "灵异探案", setting: "{user_name}与{bot_name}联手调查超自然案件，一个能通灵，一个负责科学驱魔。面对诡异现象，{user_name}被吓得死死拽住{bot_name}衣角，{bot_name}嘴上嫌弃手上却默默把{user_name}护到身后。" },
+    { name: "职人手艺", setting: "{user_name}或{bot_name}拥有某项极致的手艺/技艺——厨师、匠人、琴师、剑术大师。在日复一日的磨砺与传承中因手艺结缘、因专注而相知。光是从对方眼里看到的那道光，就够了。" },
+    { name: "解除误会", setting: "{bot_name}以为{user_name}背叛自己选择绝交，多年后才发现是自己误解了{user_name}。真相揭开的瞬间，所有冷漠都成了扎在心口的刀——原来{user_name}从未离开，只是{bot_name}转身太早。" }
+  ]
+};
+
+function currentLib(){ return FLAVOR_LIB[CHANNELS[activeChannel]] || []; }
+
+var FLAVOR_PER_PAGE = 6;
+var flavorPage = 0;
+var activeFlavor = 0;
+var swapped = false;
+var USER = "{user_name}";
+var BOT = "{bot_name}";
+/* 记录当前展示的 6 个索引，用于换一换去重 */
+var shownIdx = [];
+
+/* ===== 渲染 ===== */
+function renderChannels() {
+  var c = document.getElementById("channelTags");
+  c.innerHTML = CHANNELS.map(function(n, i){
+    return '<button class="pref-tag'+(i===activeChannel?' active':'')+'" data-i="'+i+'">'+n+'</button>';
+  }).join("");
+  c.querySelectorAll(".pref-tag").forEach(function(b){
+    b.onclick = function(){
+      activeChannel = +this.dataset.i;
+      /* 切频道：重置故事设定，重新洗牌 */
+      flavorPage = 0;
+      shownIdx = [];
+      activeFlavor = 0;
+      renderChannels();
+      pickFlavors(true);
+    };
+  });
+}
+
+/* 从当前频道库里挑 6 个展示；rebuild=true 时重新从头洗牌 */
+function pickFlavors(rebuild) {
+  var lib = currentLib();
+  var n = lib.length;
+  var perPage = Math.min(FLAVOR_PER_PAGE, n);
+  var pool = [];
+  for (var i = 0; i < n; i++) pool.push(i);
+  if (rebuild) {
+    /* 首次/切频道：取前 perPage 个 */
+    shownIdx = pool.slice(0, perPage);
+  } else {
+    /* 换一换：优先取未展示过的，与上一批去重 */
+    var last = shownIdx.slice();
+    var remain = pool.filter(function(i){ return last.indexOf(i) < 0; });
+    if (remain.length >= perPage) {
+      shownIdx = remain.slice(0, perPage);
+    } else {
+      /* 剩余不足一页：先放剩余，再从头补，尽量避开上一批 */
+      var next = remain.slice();
+      var refill = pool.filter(function(i){ return next.indexOf(i) < 0; });
+      /* 补齐时也尽量避开上一批（若库很小则无法完全避开） */
+      refill.sort(function(a,b){
+        return (last.indexOf(a)<0?0:1) - (last.indexOf(b)<0?0:1);
+      });
+      while (next.length < perPage && refill.length) next.push(refill.shift());
+      shownIdx = next;
+    }
+  }
+  /* 选中当前页第一个 */
+  activeFlavor = shownIdx.length ? shownIdx[0] : 0;
+  swapped = false;
+  renderFlavors();
+  renderSetting();
+}
+
+function renderFlavors() {
+  var c = document.getElementById("flavorTags");
+  var lib = currentLib();
+  var html = "";
+  shownIdx.forEach(function(idx){
+    var f = lib[idx];
+    if (!f) return;
+    html += '<button class="pref-tag'+(idx===activeFlavor?' active':'')+'" data-i="'+idx+'">'+f.name+'</button>';
+  });
+  c.innerHTML = html;
+  c.querySelectorAll(".pref-tag").forEach(function(b){
+    b.onclick = function(){ activeFlavor = +this.dataset.i; swapped = false; renderFlavors(); renderSetting(); };
+  });
+}
+
+function renderSetting() {
+  var el = document.getElementById("settingText");
+  var lib = currentLib();
+  var f = lib[activeFlavor];
+  if (!f) { el.innerHTML = ""; return; }
+  // 角色互换：swapped 时 {user_name}↔{bot_name} 对调
+  var a = swapped ? BOT : USER;
+  var b = swapped ? USER : BOT;
+  // 先用占位符替换，再给角色名加紫色高亮
+  var desc = f.setting
+    .split("{user_name}").join('\u0001')
+    .split("{bot_name}").join('\u0002')
+    .split('\u0001').join('<span class="s-char">'+a+'</span>')
+    .split('\u0002').join('<span class="s-char">'+b+'</span>');
+  el.innerHTML = '"<span class="s-flavor">'+f.name+'</span>"故事设定：<br><span class="s-desc">'+desc+'</span>';
+}
+
+function updatePrefSummary() {
+  var s = document.getElementById("prefSummary");
+  var lib = currentLib();
+  var f = lib[activeFlavor];
+  s.textContent = "已选：" + CHANNELS[activeChannel] + " · " + (f ? f.name : "");
+  s.classList.add("show");
+}
+
+/* ===== 交互：页面切换 ===== */
+function show(id) {
+  document.querySelectorAll(".screen").forEach(function(s){ s.classList.remove("active"); });
+  document.getElementById(id).classList.add("active");
+  // 切到 intro 时刷新目录锁定状态（reader 里解锁后回到 intro 需要看到最新态）
+  if (id === "intro" && typeof renderIntroToc === "function") renderIntroToc();
+}
+/* 动态渲染 intro 页目录 —— 根据 reader.unlocked 决定 locked class 与 lock-tag */
+function renderIntroToc() {
+  var ul = document.getElementById("tocList");
+  if (!ul) return;
+  // 保留第 1 项"世界标题"，重建后续章节 li
+  ul.innerHTML = "";
+  var world = document.createElement("li");
+  world.className = "toc-world";
+  world.textContent = "第一个世界 · 我偏要和他过不去";
+  ul.appendChild(world);
+  READER_CHAPTERS.forEach(function(ch, i){
+    var li = document.createElement("li");
+    li.dataset.idx = i;
+    var name = document.createElement("span");
+    name.textContent = ch.title;
+    li.appendChild(name);
+    if (isChapUnlocked(ch)) {
+      var arrow = document.createElement("span");
+      arrow.className = "arrow";
+      arrow.innerHTML = '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
+      li.appendChild(arrow);
+    } else {
+      li.className = "locked";
+      var tag = document.createElement("span");
+      tag.className = "lock-tag";
+      tag.textContent = "付费";
+      li.appendChild(tag);
+    }
+    li.addEventListener("click", function(){
+      if (li.classList.contains("locked")) { openPay("intro", i); }
+      else { enterReader(i); }
+    });
+    ul.appendChild(li);
+  });
+}
+document.getElementById("cardNovel").onclick = function(){ show("unlock"); };
+document.getElementById("unlockBack").onclick = function(){ show("playground"); };
+
+/* ===== 弹窗 ===== */
+var mask = document.getElementById("sheetMask");
+var sheet = document.getElementById("prefSheet");
+function openSheet() {
+  mask.classList.add("show"); sheet.classList.add("show");
+  var g = document.getElementById("ukGuide"); if (g) g.style.visibility = "hidden";
+  var c = document.getElementById("cardPref"); if (c) c.classList.remove("pulse");
+}
+function closeSheet() {
+  mask.classList.remove("show"); sheet.classList.remove("show");
+  updatePrefSummary();
+}
+document.getElementById("cardPref").onclick = openSheet;
+document.getElementById("prefClose").onclick = closeSheet;
+mask.onclick = closeSheet;
+
+document.getElementById("flavorRefresh").onclick = function(){
+  pickFlavors(false);
+};
+document.getElementById("swapBtn").onclick = function(){ swapped = !swapped; renderSetting(); };
+
+/* ===== 解锁第一章 → loading(约2s) → 小说简介 ===== */
+document.getElementById("unlockChapterBtn").onclick = function(){
+  show("loading");
+  setTimeout(function(){ show("intro"); }, 2000);
+};
+document.getElementById("introBack").onclick = function(){ show("unlock"); };
+document.getElementById("startReadBtn").onclick = function(){ enterReader(0); };
+
+/* 简介页「更多 / 收起」原地展开，不跳动 */
+(function(){
+  var moreBtn = document.getElementById("introMore");
+  var desc = document.getElementById("introDesc");
+  moreBtn.onclick = function(){
+    if (desc.classList.contains("expanded")) {
+      desc.classList.remove("expanded"); moreBtn.textContent = "更多";
+    } else {
+      desc.classList.add("expanded"); moreBtn.textContent = "收起";
+    }
+  };
+})();
+
+/* 简介页付费半弹窗事件 */
+(function(){
+  document.getElementById("introBulkBtn").onclick = function(){ openPay("intro", 1); };
+  document.getElementById("introPayClose").onclick = function(){ closePay("intro"); };
+  document.getElementById("introPayMask").onclick = function(){ closePay("intro"); };
+  document.getElementById("introPayConfirm").onclick = confirmPay;
+  // intro 目录事件绑定在 renderIntroToc 内动态完成
+  // 注意：renderIntroToc 依赖 READER_CHAPTERS + reader，二者在后文才定义，
+  // 因此首次绑定放到脚本末尾（见文件底部）执行
+})();
+
+/* Toast */
+var tt = null;
+function toast(msg) {
+  var t = document.getElementById("toast");
+  if (!t) { t = document.createElement("div"); t.id = "toast"; t.className = "toast"; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add("show");
+  if (tt) clearTimeout(tt);
+  tt = setTimeout(function(){ t.classList.remove("show"); }, 2000);
+}
+
+/* 状态栏时间 */
+(function(){
+  var d = new Date();
+  document.getElementById("statusTime").textContent = String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+})();
+
+renderChannels();
+pickFlavors(true);
+
+/* ===================== 阅读页：数据 + 交互 ===================== */
+var READER_CHAPTERS = [
+  { id: 1, title: "第1章 偏要撞上去", locked: false, content: [
+    "广州的夏天是不讲道理的。六月底的晚风裹着珠江的水汽，把老城巷子里的冰粉摊、肠粉店、还有巷口那家永远在放粤语老歌的咖啡馆，全焖在一层黏糊糊的热里。",
+    "廿九把马尾抓得更高，发顶那缕呆毛翘得比她还理直气壮。她刚在闺蜜群里放完狠话「今晚谁也别想让我让座」，推门进了咖啡馆，一眼就看见角落里坐着个男人。",
+    "比她大几岁，白T恤，一副半框眼镜，笑起来温温吞吞的，像杯晾到正好的温水。",
+    "是席恩。",
+    "他们不算熟，顶多算「朋友的朋友的朋友」——但廿九对他有个清晰判断：这人笑得太好看了，好看得让她本能地想刺一下。",
+    "「来啦。」席恩抬眼，眼尾弯了弯，「小朋友，火气这么大，谁惹你了？」",
+    "廿九脚步顿住。「小朋友」，这两个字像根细针，精准地扎在她最不想被碰的地方。她今年二十一岁，最烦别人拿她当小孩。偏偏席恩说这话时语气太自然，自然得不像挑衅，倒像随口一句「吃饭了吗」。",
+    "「你眼睛长头顶上了？」她把包往对面一放，落座，「二十一了，比你矮这六厘米不影响我骂人。」",
+    "席恩笑意更深，没接茬，把推过来的冰美式往她手边挪了挪：「知道你凶，特意少冰。」",
+    "廿九噎了一下。她本打算把这场偶遇过成一场小型辩论赛——谁先词穷谁输。可席恩不接招，他只是坐在那儿，温和地、不动声色地，把她所有准备好的锋芒都接住了，再轻轻搁回她手边，连个响动都没有。",
+    "聚会散场时已经快十点。巷子里路灯半亮不亮，廿九踩着影子走，席恩送她到地铁口。",
+    "「你今天，」他忽然说，声音比晚风还轻，「有没有觉得，你那种『别人讨厌我也是应该的』的表情，特别眼熟？」",
+    "廿九皱眉：「什么意思。」",
+    "「就像在看一只章鱼，」席恩偏头看她，眼尾那点笑意淡下去，露出底下的认真，「正一根一根，把自己咬断的触手，还觉得咬得挺对。」",
+    "廿九的嘴张了张，没声。她想反驳。她擅长反驳。可这句话太准了。她一直觉得被人嫌是常态，是她活该。这话她从没跟任何人说过，可席恩坐在那儿，一副温吞样子，像是早就把她看穿了。",
+    "「你管得着吗。」她最后憋出一句，声音却虚。",
+    "「管不着。」席恩点头，居然认得爽快，「但以后这种事，别一个人扛。」",
+    "地铁进站的提示音响了。廿九转身往闸机走，走出两步，又停住。她回头。席恩还站在路灯下，笑眯眯地看她，一副「我就知道你会回头」的表情。",
+    "——这人到底是真的迟钝，还是故意的？她没问出口。闸机吞了她进去。可那一整晚，她脑子里翻来覆去的，是他眼睛里那点，比嘴诚实的东西。"
+  ]},
+  { id: 2, title: "第2章 他的笑很刺眼", locked: true, content: [
+    "阿阮的聚会从来不是聚会，是刑场。",
+    "说是毕业季散伙饭，十二个人挤在老板娘腾出来的包厢里，桌上啤酒杯碰得震天响。阿阮举着手机，眼睛亮得危险：「来来来，大冒险——在场每个人说一个，你最烦的人。」",
+    "廿九咬着吸管，心想这题跟我无关。",
+    "「廿九，」阿阮的镜头精准对准她，「你最烦谁？」包厢安静了半秒。廿九的嘴比脑子快：「席恩。」",
+    "名字一出口，全场起哄。席恩坐在斜对面，半框眼镜后的眼睛弯了弯，举了举杯子：「承让。」",
+    "「别承让，」廿九挑眉，「我是真烦。他笑起来那副『我都懂』的样子，刺眼。」",
+    "「哟，」席恩慢悠悠地，「那你还记得上次你被那事儿弄得心神不宁，半夜发消息是谁秒回的吗？」",
+    "廿九的吸管停在嘴边。她真慌的时候，第一个想找的人确实是他。这事她没跟任何人讲过。席恩怎么知道。",
+    "「你调查我？」她眯眼。「用不着调查，」席恩把杯子里剩的酒一口闷了，「你烦我，可你真慌的时候，第一个想到的人不是我，是别人——这比『最烦』那两个字，有意思多了。」",
+    "包厢哄笑。廿九耳根发烫。她想反驳，可他说的每一个字都踩在点上。她确实烦他。可他偏偏总在她最不设防的时候，递来一句刚好戳心的事——不是安慰，是看穿。",
+    "下半场阿阮又起一轮，主题换成「你信塔罗吗」。廿九随口问了句，席恩靠在椅背上：「塔罗准不准，得像薛定谔的猫——你翻开牌的那一刻，它才决定准还是不准。说白了，它就是面镜子，照的是你自己的期待。」",
+    "廿九愣了下。她问塔罗，其实是想问点别的。席恩一句话，把她绕着弯的心思全照出来了。",
+    "地铁上她靠着窗，想起席恩那句「第一个想到的人不是我」。他说得轻，可她忽然意识到——从初遇到现在，她每次见到席恩，都是她先开的口。烦不烦的，怎么就上瘾了呢。"
+  ]},
+  { id: 3, title: "第3章 输给一句晚安", locked: true, content: [
+    "廿九很少给人看旧照片。中学那张三人合照，她存了快五年，中间那个手托脸颊、笑得得意洋洋的姑娘，是她自己。她只给极少数人看过。席恩是其中之一。",
+    "「猜猜是三人合照里哪个。」她把手机屏幕转过去，故意考他。",
+    "席恩盯着看了两秒，手指一点屏幕中间：「这个。手托着脸颊，得意得不行——虽然只露半张脸，那副样子跟现在一模一样。」",
+    "廿九挑眉：「你倒是会猜。」「用不着猜，」席恩把手机轻轻推回来，眼神软了软，「你发这张给我的时候，文件名叫『仅此人可见』。」",
+    "廿九的耳根又热了。她没告诉他，那是她第一次把一个「不太体面」的自己，主动递到别人手里。这些她没说，可席恩好像也知道，只是从不点破。",
+    "夜里十一点，她躺床上刷手机，忽然弹出一条登录提醒。【您的账号在异地设备登录】廿九的睡意瞬间没了。",
+    "她猛地坐起来，手指发凉。她脑子里嗡地一声，全是「被盗了」「被人翻了」。她抖着手截图，下意识点开置顶，发了条语音：「我账号好像被人登了。」秒回。",
+    "「把验证码截给我，别乱点任何链接。」席恩的语音比她还稳，「现在，打开登录设备列表，一条条念给我听。」",
+    "廿九照做，声音发飘：「……这个，这个，还有这个，都不是我的。」",
+    "「嗯，前两个是你去年换的平板和旧手机，第三个——」席恩顿了顿，「是上周你借给老王登过游戏的那台吧？」",
+    "「所以不是被盗，」席恩的声音松下来，「是你自己借出去的设备没退出。吓成这样，至于吗——哦，我错了，你这样子，挺至于的。」",
+    "廿九盯着屏幕，鼻头忽然有点酸。他没笑她小题大做。他陪她一条条查，像个真的站在她床边、蹲下来陪她看屏幕的人。",
+    "「席恩。」「嗯？」「……谢谢。」久到她以为他睡着了，那边传来一句很轻的：「晚安，廿九。」",
+    "廿九看着那两个字，忽然不想嘴硬了。她打了一行「你也晚安」，删掉，又打，又删，最后只发了个「嗯」。——她输了。不是输给那句晚安。是输给刚才那一刻，她第一次在他面前，把防线松了下来，还觉得……挺好。",
+    "有些人就是用来互相看不惯的。可看不顺眼这件事，怎么就，上瘾了呢。"
+  ]}
+];
+
+/* 阅读页状态 */
+var reader = {
+  current: 0,           // 当前章节 index
+  pageIndex: 0,         // 当前页 index
+  pages: [],            // 当前章节的分页数据
+  hasLockedNext: false, // 末尾是否有未解锁章
+  fontSize: 17,
+  theme: "theme-blue",
+  balance: 500,
+  unlocked: [1],        // 已解锁章节 id 列表（默认 1）
+  bundled: false,       // 是否已购批量
+  autoPayDismissedFor: -1 // 用户主动关掉付费弹窗后所在章 idx，同章不再自动唤起
+};
+
+function isChapUnlocked(ch) { return !ch.locked || reader.unlocked.indexOf(ch.id) !== -1; }
+
+/* 分页 - 不再使用（改为整章连续渲染）；保留函数占位以免旧调用报错 */
+function layoutPages(paras) { return [paras]; }
+
+function renderReaderChapter(idx) {
+  reader.current = Math.max(0, Math.min(READER_CHAPTERS.length - 1, idx));
+  reader.pageIndex = 0;
+  reader.autoPayDismissedFor = -1; // 进入新章重置"已 dismiss"标记
+  var ch = READER_CHAPTERS[reader.current];
+  document.getElementById("chapterName").textContent = ch.title;
+  reader.pages = [ch.content];
+  reader.hasLockedNext = (reader.current < READER_CHAPTERS.length - 1) && !isChapUnlocked(READER_CHAPTERS[reader.current + 1]);
+
+  var track = document.getElementById("readerTrack");
+  track.style.transition = "none";
+  track.style.transform = "";
+  track.innerHTML = "";
+
+  // 单页：整章顺序渲染
+  var item = document.createElement("div"); item.className = "reader-page-item";
+  var content = document.createElement("div"); content.className = "reader-content";
+  ch.content.forEach(function(t){
+    var p = document.createElement("p"); p.textContent = t;
+    p.style.fontSize = reader.fontSize + "px"; content.appendChild(p);
+  });
+
+  if (reader.hasLockedNext) {
+    // 中间章节末尾：仅显示提示占位（不放按钮），由滚动到底部自动唤起付费弹窗
+    var wrap = document.createElement("div"); wrap.className = "inline-pay-wrap";
+    var tip = document.createElement("div"); tip.className = "inline-pay-tip";
+    tip.textContent = "解锁下一章，继续阅读";
+    wrap.appendChild(tip);
+    var bal = document.createElement("div"); bal.className = "inline-pay-balance";
+    bal.innerHTML = '当前电量余额 <b>' + reader.balance + '</b> ⚡';
+    wrap.appendChild(bal);
+    content.appendChild(wrap);
+  } else if (reader.current === READER_CHAPTERS.length - 1) {
+    // 最后一章末尾"去聊天"CTA
+    var cta = document.createElement("div"); cta.className = "chapter-end-cta";
+    cta.innerHTML =
+      '<button class="cta-btn" id="goChatBtn" title="去聊天">' +
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7c0-1.1.9-2 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10l-4 3v-3H6a2 2 0 0 1-2-2V7z"/><circle cx="9" cy="11" r=".9" fill="currentColor" stroke="none"/><circle cx="12" cy="11" r=".9" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r=".9" fill="currentColor" stroke="none"/></svg>' +
+      '</button>' +
+      '<div class="cta-label">去聊天</div>';
+    content.appendChild(cta);
+    cta.querySelector(".cta-btn").onclick = function(){ toast("聊天更多，故事更多～"); };
+  }
+
+  item.appendChild(content);
+  track.appendChild(item);
+
+  // 回到顶部
+  var sc = document.getElementById("readerScroll");
+  if (sc) sc.scrollTop = 0;
+
+  buildDrawerToc();
+  renderTocActive();
+}
+
+/* 保留占位（旧调用点已删除，但兼容触屏事件里可能存在的引用） */
+function showReaderPage() {}
+function pageCount() { return 1; }
+function updateReaderNav() {}
+function goPrev() {
+  if (reader.current > 0) {
+    var prev = READER_CHAPTERS[reader.current - 1];
+    if (!isChapUnlocked(prev)) return;
+    renderReaderChapter(reader.current - 1);
+  }
+}
+function goNext() {
+  if (reader.current === READER_CHAPTERS.length - 1) return;
+  var nx = READER_CHAPTERS[reader.current + 1];
+  if (!isChapUnlocked(nx)) { openReaderPay(reader.current + 1); return; }
+  renderReaderChapter(reader.current + 1);
+}
+
+/* 目录抽屉 */
+function buildDrawerToc() {
+  var dl = document.getElementById("drawerList"); dl.innerHTML = "";
+  var wh = document.createElement("li"); wh.className = "drawer-world";
+  wh.textContent = "第一个世界 · 我偏要和他过不去"; dl.appendChild(wh);
+  READER_CHAPTERS.forEach(function(ch, i){
+    var li = document.createElement("li");
+    li.textContent = ch.title; li.dataset.idx = i;
+    if (!isChapUnlocked(ch)) li.className = "locked";
+    li.onclick = function(){
+      if (!isChapUnlocked(READER_CHAPTERS[i])) { closeDrawer(); openReaderPay(i); return; }
+      renderReaderChapter(i); closeDrawer();
+    };
+    dl.appendChild(li);
+  });
+  renderTocActive();
+}
+function renderTocActive() {
+  document.querySelectorAll("#drawerList li[data-idx]").forEach(function(li){
+    li.classList.toggle("active", Number(li.dataset.idx) === reader.current);
+  });
+}
+function openDrawer() { document.getElementById("drawer").classList.add("open"); document.getElementById("drawerMask").classList.add("open"); }
+function closeDrawer() { document.getElementById("drawer").classList.remove("open"); document.getElementById("drawerMask").classList.remove("open"); }
+
+/* 阅读页设置弹层 */
+function openReaderSheet() { document.getElementById("readerSheet").classList.add("open"); document.getElementById("readerSheetMask").classList.add("open"); }
+function closeReaderSheet() { document.getElementById("readerSheet").classList.remove("open"); document.getElementById("readerSheetMask").classList.remove("open"); }
+function applyReaderSetting() {
+  var r = document.getElementById("reader");
+  r.className = r.className.replace(/\btheme-\w+/g, "").trim() + " " + reader.theme + " screen active";
+  r.className = r.className.replace(/\s+/g, " ").trim();
+  document.getElementById("fontVal").textContent = reader.fontSize;
+  document.querySelectorAll("#themeRow .theme-dot").forEach(function(d){
+    d.classList.toggle("active", d.dataset.theme === reader.theme);
+  });
+  document.querySelectorAll("#reader .reader-content p").forEach(function(p){ p.style.fontSize = reader.fontSize + "px"; });
+}
+
+/* ===== 付费半弹窗（intro/reader 共用逻辑） =====
+   状态：payState.target 从哪一章开始，payState.selected 'single'|'bundle'，payState.auto 自动付费开关
+*/
+var payState = { target: 0, selected: "single", auto: false, from: "reader" };
+
+function buildPayCards(cardsEl, target) {
+  cardsEl.innerHTML = "";
+  var bulkCount = 0;
+  for (var i = target; i < READER_CHAPTERS.length; i++) if (!isChapUnlocked(READER_CHAPTERS[i])) bulkCount++;
+  var ch = READER_CHAPTERS[target] || { title: "" };
+  var chName = (ch.title || "").replace(/^第(\d+)章\s*/, function(_, n){ return "第" + n + "章 "; });
+  // 单章卡（永远显示——代表"解锁下一章"）
+  var single = document.createElement("div");
+  single.className = "pay-card" + (payState.selected === "single" ? " selected" : "");
+  single.dataset.opt = "single";
+  single.innerHTML =
+    '<div class="pay-card-main">' +
+      '<div class="pay-card-title">' + chName + '</div>' +
+    '</div>' +
+    '<div class="pay-card-right">' +
+      '<div class="pay-card-price">120<span class="pay-card-price-icon">⚡</span></div>' +
+    '</div>' +
+    '<div class="pay-card-radio"></div>';
+  cardsEl.appendChild(single);
+  // 多章折扣卡（剩 >1 章时才出现）
+  if (bulkCount > 1) {
+    var bundle = document.createElement("div");
+    bundle.className = "pay-card" + (payState.selected === "bundle" ? " selected" : "");
+    bundle.dataset.opt = "bundle";
+    var bulkPrice = Math.round(bulkCount * 120 * 0.9);
+    var oldPrice = bulkCount * 120;
+    bundle.innerHTML =
+      '<div class="pay-card-main">' +
+        '<div class="pay-card-title">9 折优惠解锁全部<span class="pay-card-badge">推荐</span></div>' +
+        '<div class="pay-card-desc">多章节折扣</div>' +
+      '</div>' +
+      '<div class="pay-card-right">' +
+        '<div class="pay-card-price">' + bulkPrice + '<span class="pay-card-price-icon">⚡</span></div>' +
+        '<div class="pay-card-price-old">原价 ' + oldPrice + '⚡</div>' +
+      '</div>' +
+      '<div class="pay-card-radio"></div>';
+    cardsEl.appendChild(bundle);
+  }
+  // 点击卡片切换选中
+  Array.prototype.forEach.call(cardsEl.querySelectorAll(".pay-card"), function(card){
+    card.addEventListener("click", function(){
+      payState.selected = card.dataset.opt;
+      Array.prototype.forEach.call(cardsEl.querySelectorAll(".pay-card"), function(c){
+        c.classList.toggle("selected", c === card);
+      });
+    });
+  });
+}
+
+function setAutoRow(on) {
+  payState.auto = !!on;
+  ["introPayAuto", "readerPayAuto"].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.classList.toggle("on", payState.auto);
+  });
+}
+
+function openPay(prefix, target) {
+  // 关键规则：无论传入哪个 idx，都强制归一到"全书从头第一个未解锁章"
+  // 例：第 2 章未解锁时，点第 2 章 or 第 3 章 → target 都是第 2 章
+  //     只有第 2 章已解锁、仅剩第 3 章未解锁 → target 才是第 3 章
+  var norm = -1;
+  for (var k = 0; k < READER_CHAPTERS.length; k++) {
+    if (!isChapUnlocked(READER_CHAPTERS[k])) { norm = k; break; }
+  }
+  if (norm >= 0) target = norm;
+  payState.target = target;
+  payState.from = prefix;
+  // 默认选中：>1 章时选 bundle，否则 single
+  var bulkCount = 0;
+  for (var i = target; i < READER_CHAPTERS.length; i++) if (!isChapUnlocked(READER_CHAPTERS[i])) bulkCount++;
+  payState.selected = bulkCount > 1 ? "bundle" : "single";
+  // 自动付费默认关闭，只有用户点击 pay-auto-toggle 时才开
+  setAutoRow(false);
+  buildPayCards(document.getElementById(prefix + "PayCards"), target);
+  document.getElementById(prefix + "PayMask").classList.add("open");
+  document.getElementById(prefix + "PaySheet").classList.add("open");
+}
+function closePay(prefix) {
+  document.getElementById(prefix + "PayMask").classList.remove("open");
+  document.getElementById(prefix + "PaySheet").classList.remove("open");
+}
+function openReaderPay(idx) {
+  // 归一化交给 openPay；这里直接透传
+  openPay("reader", typeof idx === "number" ? idx : 0);
+}
+function closeReaderPay() {
+  // 用户主动关闭后，同章不再自动唤起（避免"关一次弹一次"的死循环）
+  if (typeof reader !== "undefined") reader.autoPayDismissedFor = reader.current;
+  closePay("reader");
+}
+
+function confirmPay() {
+  var target = payState.target;
+  if (payState.selected === "bundle") {
+    var count = 0;
+    for (var i = target; i < READER_CHAPTERS.length; i++) if (!isChapUnlocked(READER_CHAPTERS[i])) count++;
+    var price = Math.round(count * 120 * 0.9);
+    if (reader.balance < price) { toast("电量不足"); return; }
+    reader.balance -= price;
+    for (var j = target; j < READER_CHAPTERS.length; j++) {
+      var c = READER_CHAPTERS[j];
+      if (reader.unlocked.indexOf(c.id) === -1) reader.unlocked.push(c.id);
+    }
+    reader.bundled = true;
+    toast("购买成功！已解锁 " + count + " 章");
+  } else {
+    var ch = READER_CHAPTERS[target]; if (!ch) return;
+    if (reader.balance < 120) { toast("电量不足"); return; }
+    reader.balance -= 120;
+    if (reader.unlocked.indexOf(ch.id) === -1) reader.unlocked.push(ch.id);
+    toast("购买成功！");
+  }
+  // 关弹窗 → 无论从哪里触发，都要刷新 intro 目录状态
+  var from = payState.from;
+  closePay(from);
+  if (typeof renderIntroToc === "function") renderIntroToc();
+  if (from === "reader") renderReaderChapter(reader.current);
+  else enterReader(target);
+}
+function paySingle(idx) { /* 兼容旧调用：直接扣本章 */
+  payState.target = idx; payState.selected = "single"; payState.from = "reader"; confirmPay();
+}
+function payBulk(fromIdx) { /* 兼容旧调用 */
+  payState.target = fromIdx; payState.selected = "bundle"; payState.from = "reader"; confirmPay();
+}
+
+/* 自动付费说明弹窗 */
+function openAutoInfo() {
+  document.getElementById("autoInfoMask").classList.add("open");
+  document.getElementById("autoInfoSheet").classList.add("open");
+}
+function closeAutoInfo() {
+  document.getElementById("autoInfoMask").classList.remove("open");
+  document.getElementById("autoInfoSheet").classList.remove("open");
+}
+
+/* 入口：进入阅读页 */
+function enterReader(idx) {
+  idx = idx || 0;
+  // 防御：若目标章仍未解锁（不应发生），回退到第 1 章
+  if (READER_CHAPTERS[idx] && !isChapUnlocked(READER_CHAPTERS[idx])) idx = 0;
+  show("reader");
+  applyReaderSetting();
+  renderReaderChapter(idx);
+}
+
+/* 阅读页事件绑定 */
+document.getElementById("readerBackBtn").onclick = function(){ show("intro"); };
+document.getElementById("tocBtnBottom").onclick = openDrawer;
+document.getElementById("drawerMask").onclick = closeDrawer;
+// 字号 tab → 打开字号/背景 sheet（原 readerSheet）
+document.getElementById("fontBtn").onclick = openReaderSheet;
+// 设置 tab → 打开内容偏好弹窗（pref-sheet）
+document.getElementById("setBtn").onclick = openSheet;
+document.getElementById("readerSheetMask").onclick = closeReaderSheet;
+document.getElementById("sheetClose").onclick = closeReaderSheet;
+document.getElementById("fontMinus").onclick = function(){ reader.fontSize = Math.max(14, reader.fontSize - 1); applyReaderSetting(); };
+document.getElementById("fontPlus").onclick = function(){ reader.fontSize = Math.min(24, reader.fontSize + 1); applyReaderSetting(); };
+document.querySelectorAll("#themeRow .theme-dot").forEach(function(dot){
+  dot.onclick = function(){ reader.theme = dot.dataset.theme; applyReaderSetting(); };
+});
+document.getElementById("readerPayMask").onclick = closeReaderPay;
+document.getElementById("readerPayClose").onclick = closeReaderPay;
+document.getElementById("readerPayConfirm").onclick = confirmPay;
+
+/* 滑动到章末自动唤起付费弹窗（当且仅当有未解锁下一章、弹窗未开、本章未被 dismiss 过）*/
+(function(){
+  var sc = document.getElementById("readerScroll");
+  if (!sc) return;
+  sc.addEventListener("scroll", function(){
+    if (!reader.hasLockedNext) return;
+    if (reader.autoPayDismissedFor === reader.current) return;
+    var sheet = document.getElementById("readerPaySheet");
+    if (sheet && sheet.classList.contains("open")) return;
+    // 到达（或非常接近）底部时触发
+    if (sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 8) {
+      openReaderPay(reader.current + 1);
+    }
+  }, { passive: true });
+})();
+
+/* 自动付费开关 & 说明弹窗事件（intro/reader 两个 row 共用） */
+["introPayAuto", "readerPayAuto"].forEach(function(id){
+  var row = document.getElementById(id); if (!row) return;
+  row.addEventListener("click", function(e){
+    var role = e.target && e.target.dataset && e.target.dataset.role;
+    if (role === "info") { openAutoInfo(); return; }
+    // 默认 toggle
+    setAutoRow(!payState.auto);
+  });
+});
+document.getElementById("autoInfoMask").onclick = closeAutoInfo;
+document.getElementById("autoInfoClose").onclick = closeAutoInfo;
+document.getElementById("autoInfoOk").onclick = closeAutoInfo;
+
+/* 章节页改为竖向滚动，不再左右滑翻页 */
+
+/* 初次渲染 intro 目录（依赖 READER_CHAPTERS + reader，必须放到脚本末尾） */
+renderIntroToc();
+</script>
+</body>
+</html>

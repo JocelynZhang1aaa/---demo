@@ -135,6 +135,125 @@
 
   /* ==================== 解锁页逻辑 ==================== */
 
+  /* ====== 创作设定：口味 + 故事设定 ====== */
+  var FLAVOR_DATA = [
+    {
+      name: "青葱校园",
+      setting: "夏侯澶与顾晚音因（校园误会/暗恋错过）在毕业后重逢，青涩情愫再次萌芽"
+    },
+    {
+      name: "久别重逢",
+      setting: "夏侯澶与顾晚音因（意外分离/各自远行）多年后在异地重逢，旧情复燃却物是人非"
+    },
+    {
+      name: "破镜重圆",
+      setting: "夏侯澶与顾晚音因（误会/现实压力）决裂，数年后解开误会重归于好"
+    },
+    {
+      name: "火葬场文学",
+      setting: "夏侯澶曾伤害顾晚音至心死离去，后知后觉疯狂弥补，而她已不再回头"
+    },
+    {
+      name: "欢喜冤家",
+      setting: "夏侯澶与顾晚音从针锋相对开始，在无数次斗嘴拌嘴中日久生情"
+    },
+    {
+      name: "一方失忆",
+      setting: "夏侯澶因意外失去记忆，顾晚音试图让他想起两人的过去，却不知他记得一切"
+    }
+  ];
+  var FLAVOR_PER_PAGE = 6; // 每页展示数量
+  var flavorPage = 0;
+  var activeFlavor = 2; // 默认选中「破镜重圆」（索引2）
+  var charRoleSwapped = false; // 角色互换状态
+
+  // 获取角色名（从 novel 数据或默认）
+  var CHAR_A = (novel.characters && novel.characters[0]) || "夏侯澶";
+  var CHAR_B = (novel.characters && novel.characters[1]) || "顾晚音";
+
+  function renderFlavorTags() {
+    var container = document.getElementById("flavorTags");
+    if (!container) return;
+    var start = flavorPage * FLAVOR_PER_PAGE;
+    var end = Math.min(start + FLAVOR_PER_PAGE, FLAVOR_DATA.length);
+    var html = "";
+    for (var i = start; i < end; i++) {
+      html += '<button class="flavor-tag' + (i === activeFlavor ? ' active' : '') + '" data-idx="' + i + '">' + FLAVOR_DATA[i].name + '</button>';
+    }
+    html += '<button class="flavor-tag flavor-custom' + (activeFlavor === -1 ? ' active' : '') + '" data-idx="-1">+ 自定义</button>';
+    container.innerHTML = html;
+    // 绑定点击
+    var btns = container.querySelectorAll(".flavor-tag");
+    for (var j = 0; j < btns.length; j++) {
+      btns[j].addEventListener("click", function () {
+        var idx = parseInt(this.getAttribute("data-idx"), 10);
+        if (idx === -1) {
+          // 自定义暂不实现完整弹窗，先标记选中
+          activeFlavor = -1;
+        } else {
+          activeFlavor = idx;
+        }
+        charRoleSwapped = false; // 切换口味重置互换
+        renderFlavorTags();
+        renderStorySetting();
+      });
+    }
+  }
+
+  function renderStorySetting() {
+    var section = document.getElementById("storySettingSection");
+    var content = document.getElementById("storySettingContent");
+    if (!content || !section) return;
+    if (activeFlavor < 0 || activeFlavor >= FLAVOR_DATA.length) {
+      content.innerHTML = '<span style="color:#999">请选择一个口味模板，或点击「+ 自定义」自行编写设定</span>';
+      section.style.display = "block";
+      return;
+    }
+    section.style.display = "block";
+    var f = FLAVOR_DATA[activeFlavor];
+    var charA = charRoleSwapped ? CHAR_B : CHAR_A;
+    var charB = charRoleSwapped ? CHAR_A : CHAR_B;
+    // 将模板中的固定角色名替换为实际角色名
+    var desc = f.setting.replace(/夏侯澶/g, charA).replace(/顾晚音/g, charB);
+    // 高亮角色名
+    desc = desc.replace(charA, '<span class="setting-char-names">' + charA + '</span>')
+               .replace(charB, '<span class="setting-char-names">' + charB + '</span>');
+    content.innerHTML = '"<span class="setting-flavor-name">' + f.name + '</span>" 故事设定：<br>' + desc;
+  }
+
+  // 换一换
+  var refreshBtn = document.getElementById("flavorRefresh");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", function () {
+      var maxPage = Math.ceil(FLAVOR_DATA.length / FLAVOR_PER_PAGE) - 1;
+      flavorPage = flavorPage >= maxPage ? 0 : flavorPage + 1;
+      renderFlavorTags();
+    });
+  }
+
+  // 角色互换
+  var swapBtn = document.getElementById("storySwapBtn");
+  if (swapBtn) {
+    swapBtn.addEventListener("click", function () {
+      charRoleSwapped = !charRoleSwapped;
+      renderStorySetting();
+    });
+  }
+
+  // 编辑按钮（暂用 Toast 提示）
+  var editBtn = document.getElementById("storyEditBtn");
+  if (editBtn) {
+    editBtn.addEventListener("click", function () {
+      showToast("编辑功能开发中");
+    });
+  }
+
+  // 初始渲染
+  renderFlavorTags();
+  renderStorySetting();
+
+  /* ====== /创作设定 ====== */
+
   // 返回按钮（解锁页左上角）
   document.getElementById("unlockBackBtn").addEventListener("click", function () {
     // 可选：返回上一页或关闭；当前仅隐藏/无操作
