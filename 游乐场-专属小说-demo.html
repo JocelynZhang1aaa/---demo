@@ -834,6 +834,42 @@ body { display: flex; align-items: center; justify-content: center; min-height: 
   50%      { opacity: .6; transform: scale(1.25) rotate(12deg); }
 }
 
+/* ===== 偏好弹窗：编辑态 ===== */
+/* 默认：浏览态显示 view-only、隐藏 edit-only */
+.pref-edit-only { display: none; }
+#prefSheet.editing .pref-view-only { display: none; }
+#prefSheet.editing .pref-edit-only { display: block; }
+/* 昵称输入 */
+.pref-nick-input {
+  width: 100%; height: 50px; box-sizing: border-box;
+  border: 1.5px solid #eceaf3; border-radius: 12px; background: #faf9fc;
+  padding: 0 14px; font-size: 15px; color: var(--ink); outline: none;
+  transition: border-color .2s;
+}
+.pref-nick-input:focus { border-color: var(--purple); background: #fff; }
+/* 编辑态设定卡片 */
+.pref-setting-title {
+  font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 8px;
+}
+.pref-setting-title .s-flavor { color: var(--purple); }
+.pref-setting-textarea {
+  width: 100%; box-sizing: border-box; min-height: 78px; resize: none;
+  border: none; background: transparent; outline: none;
+  font-size: 13px; line-height: 1.7; color: #555; font-family: inherit;
+}
+.pref-setting-count {
+  text-align: right; font-size: 12px; color: #b0b0b8; margin-top: 4px;
+}
+/* 编辑态底部解锁按钮 */
+.pref-unlock-foot { margin-top: 18px; }
+.pref-balance {
+  text-align: center; font-size: 12px; color: #9aa0ab;
+  margin-top: 12px; letter-spacing: .3px;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+}
+.pref-balance .bal-icon { width: 13px; height: 13px; vertical-align: middle; }
+.pref-balance b { color: #f5a623; font-weight: 700; }
+
 /* Toast */
 .toast {
   position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(10px);
@@ -971,9 +1007,15 @@ body { display: flex; align-items: center; justify-content: center; min-height: 
     <div class="sheet-mask" id="sheetMask"></div>
     <div class="pref-sheet" id="prefSheet">
       <div class="pref-head">
-        <div class="pref-title">选择你的喜好</div>
-        <div class="pref-sub">单选，将直接影响首章的剧情，可在故事设置里随时调整</div>
+        <div class="pref-title" id="prefTitle">选择你的喜好</div>
+        <div class="pref-sub" id="prefSub">单选，将直接影响首章的剧情，可在故事设置里随时调整</div>
         <button class="pref-close" id="prefClose">✕</button>
+      </div>
+
+      <!-- 昵称输入（仅编辑态显示） -->
+      <div class="pref-group pref-edit-only" id="nickGroup">
+        <div class="pref-label">小说里“你”的昵称</div>
+        <input class="pref-nick-input" id="nickInput" type="text" maxlength="12" placeholder="">
       </div>
 
       <!-- 小说频道 -->
@@ -993,15 +1035,33 @@ body { display: flex; align-items: center; justify-content: center; min-height: 
 
       <!-- 设定说明 -->
       <div class="pref-setting-card">
-        <div class="pref-setting-text" id="settingText"></div>
-        <div class="pref-setting-actions">
-          <button class="pref-swap" id="swapBtn">⇄ 角色互换</button>
-          <button class="pref-vip" id="vipBtn">
-            <span class="vip-icon">✨</span>
-            <span class="vip-label">会员特权</span>
-            <span class="vip-edit">编辑</span>
-          </button>
+        <!-- 浏览态：只读文本 + 角色互换 + 会员特权 -->
+        <div class="pref-view-only" id="settingView">
+          <div class="pref-setting-text" id="settingText"></div>
+          <div class="pref-setting-actions">
+            <button class="pref-swap" id="swapBtn">⇄ 角色互换</button>
+            <button class="pref-vip" id="vipBtn">
+              <span class="vip-icon">✨</span>
+              <span class="vip-label">会员特权</span>
+              <span class="vip-edit">编辑</span>
+            </button>
+          </div>
         </div>
+        <!-- 编辑态：标题 + 可编辑 textarea + 字数统计 -->
+        <div class="pref-edit-only" id="settingEdit">
+          <div class="pref-setting-title" id="settingEditTitle"></div>
+          <textarea class="pref-setting-textarea" id="settingTextarea" maxlength="100" placeholder="描述你想要的故事设定…"></textarea>
+          <div class="pref-setting-count"><span id="settingCount">0</span>/100</div>
+        </div>
+      </div>
+
+      <!-- 底部解锁按钮（仅编辑态显示） -->
+      <div class="pref-unlock-foot pref-edit-only" id="prefUnlockFoot">
+        <button class="uk-unlock-btn" id="prefUnlockBtn">
+          <span class="u-main">解锁第一章</span>
+          <span class="u-free"><span class="bolt">⚡</span>限时免费</span>
+        </button>
+        <div class="pref-balance">当前电量余额 <img class="bal-icon" src="demo-assets/power.png" alt=""> <b>500</b> 电量</div>
       </div>
     </div>
 
@@ -1392,7 +1452,8 @@ function openSheet() {
   mask.classList.add("show"); sheet.classList.add("show");
   var g = document.getElementById("ukGuide"); if (g) g.style.visibility = "hidden";
   var c = document.getElementById("cardPref"); if (c) c.classList.remove("pulse");
-  /* 每次打开偏好弹窗：播放会员特权过场动画 */
+  /* 每次打开先回到浏览态，再播放会员特权过场动画 */
+  exitPrefEdit();
   playVipAnimation();
 }
 function closeSheet() {
@@ -1422,8 +1483,46 @@ function playVipAnimation() {
 }
 document.getElementById("cardPref").onclick = openSheet;
 document.getElementById("prefClose").onclick = closeSheet;
-document.getElementById("vipBtn").onclick = function(){ toast("会员特权：自定义角色、多结局分支、无限续写"); };
+document.getElementById("vipBtn").onclick = enterPrefEdit;
 mask.onclick = closeSheet;
+
+/* ===== 偏好弹窗：编辑态 ===== */
+function enterPrefEdit() {
+  var sheet = document.getElementById("prefSheet");
+  sheet.classList.add("editing");
+  document.getElementById("prefTitle").textContent = "完成选择，专属小说更懂你";
+  document.getElementById("prefSub").style.display = "none";
+  /* 用当前设定文本初始化 textarea（去掉"XX故事设定："前缀，取正文） */
+  var lib = currentLib();
+  var f = lib[activeFlavor];
+  var titleEl = document.getElementById("settingEditTitle");
+  var ta = document.getElementById("settingTextarea");
+  if (f) {
+    titleEl.innerHTML = '"<span class="s-flavor">' + f.name + '</span>"故事设定：';
+    var a = swapped ? BOT : USER, b = swapped ? USER : BOT;
+    var plain = f.setting.split("{user_name}").join(a).split("{bot_name}").join(b);
+    if (!ta.value) ta.value = plain;
+  }
+  updateSettingCount();
+  ta.focus();
+}
+function exitPrefEdit() {
+  var sheet = document.getElementById("prefSheet");
+  sheet.classList.remove("editing");
+  document.getElementById("prefTitle").textContent = "选择你的喜好";
+  document.getElementById("prefSub").style.display = "";
+}
+function updateSettingCount() {
+  var ta = document.getElementById("settingTextarea");
+  document.getElementById("settingCount").textContent = ta.value.length;
+}
+document.getElementById("settingTextarea").addEventListener("input", updateSettingCount);
+/* 编辑态点「解锁第一章」→ 关弹窗 → loading → intro */
+document.getElementById("prefUnlockBtn").onclick = function(){
+  closeSheet();
+  show("loading");
+  setTimeout(function(){ show("intro"); }, 2000);
+};
 
 document.getElementById("flavorRefresh").onclick = function(){
   pickFlavors(false);
