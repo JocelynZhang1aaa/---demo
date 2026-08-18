@@ -777,6 +777,63 @@ body { display: flex; align-items: center; justify-content: center; min-height: 
 }
 .pref-swap:active { transform: scale(.96); opacity: .7; }
 
+/* 设定卡片底部按钮行 */
+.pref-setting-actions {
+  display: flex; align-items: center; gap: 10px;
+}
+.pref-vip {
+  height: 34px; padding: 0 14px; border-radius: 17px; font-size: 12.5px; font-weight: 600;
+  border: none; background: linear-gradient(135deg, #9b6dff, #7c4dff); color: #fff;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+  position: relative; overflow: hidden;
+  transition: width .4s cubic-bezier(.4,0,.2,1), padding .4s cubic-bezier(.4,0,.2,1), background .3s;
+}
+.pref-vip:active { transform: scale(.96); }
+.pref-vip .vip-icon {
+  font-size: 14px; flex-shrink: 0;
+  animation: vip-sparkle 1.2s ease-in-out infinite;
+}
+.pref-vip .vip-label {
+  white-space: nowrap; display: inline-block;
+  transition: opacity .35s, transform .35s, width .35s;
+  overflow: hidden;
+}
+.pref-vip .vip-edit {
+  white-space: nowrap; display: inline-block;
+}
+/* 动画中：会员特权展示态 */
+.pref-vip.vip-animating {
+  animation: vip-entrance .8s cubic-bezier(.22,1,.36,1) both,
+             vip-glow 1.6s ease-in-out .8s 2;
+  box-shadow: 0 0 0 0 rgba(124,77,255,.45);
+}
+.pref-vip.vip-animating .vip-label {
+  opacity: 1; transform: translateX(0);
+}
+/* 动画结束：收窄为纯「编辑」按钮 */
+.pref-vip.vip-collapsed {
+  padding: 0 14px;
+  background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+}
+.pref-vip.vip-collapsed .vip-icon { animation: none; }
+.pref-vip.vip-collapsed .vip-label {
+  opacity: 0; transform: translateX(-8px); width: 0; margin: 0; pointer-events: none;
+}
+
+@keyframes vip-entrance {
+  0%   { opacity: 0; transform: scale(.7) translateY(6px); }
+  60%  { opacity: 1; transform: scale(1.04) translateY(-2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes vip-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124,77,255,.0), 0 0 0 0 rgba(124,77,255,.0); }
+  50%      { box-shadow: 0 0 12px 3px rgba(124,77,255,.35), 0 0 24px 6px rgba(124,77,255,.15); }
+}
+@keyframes vip-sparkle {
+  0%, 100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  50%      { opacity: .6; transform: scale(1.25) rotate(12deg); }
+}
+
 /* Toast */
 .toast {
   position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(10px);
@@ -937,7 +994,14 @@ body { display: flex; align-items: center; justify-content: center; min-height: 
       <!-- 设定说明 -->
       <div class="pref-setting-card">
         <div class="pref-setting-text" id="settingText"></div>
-        <button class="pref-swap" id="swapBtn">⇄ 角色互换</button>
+        <div class="pref-setting-actions">
+          <button class="pref-swap" id="swapBtn">⇄ 角色互换</button>
+          <button class="pref-vip" id="vipBtn">
+            <span class="vip-icon">✨</span>
+            <span class="vip-label">会员特权</span>
+            <span class="vip-edit">编辑</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1328,13 +1392,37 @@ function openSheet() {
   mask.classList.add("show"); sheet.classList.add("show");
   var g = document.getElementById("ukGuide"); if (g) g.style.visibility = "hidden";
   var c = document.getElementById("cardPref"); if (c) c.classList.remove("pulse");
+  /* 每次打开偏好弹窗：播放会员特权过场动画 */
+  playVipAnimation();
 }
 function closeSheet() {
   mask.classList.remove("show"); sheet.classList.remove("show");
   updatePrefSummary();
 }
+
+/* ===== 会员特权过场动画 ===== */
+var _vipAnimTimer = null;
+function playVipAnimation() {
+  var btn = document.getElementById("vipBtn");
+  if (!btn) return;
+  /* 清理上一次 */
+  if (_vipAnimTimer) { clearTimeout(_vipAnimTimer); _vipAnimTimer = null; }
+  /* 重置为完整「会员特权 编辑」态 */
+  btn.classList.remove("vip-collapsed", "vip-animating");
+  btn.style.animation = "none";
+  /* 强制 reflow 后启动动画 */
+  void btn.offsetWidth;
+  btn.classList.add("vip-animating");
+  /* 动画总时长 ≈ .8s(entrance) + 1.6s(glow×2) = 2.4s，之后收窄为纯「编辑」 */
+  _vipAnimTimer = setTimeout(function(){
+    btn.classList.remove("vip-animating");
+    btn.classList.add("vip-collapsed");
+    _vipAnimTimer = null;
+  }, 2400);
+}
 document.getElementById("cardPref").onclick = openSheet;
 document.getElementById("prefClose").onclick = closeSheet;
+document.getElementById("vipBtn").onclick = function(){ toast("会员特权：自定义角色、多结局分支、无限续写"); };
 mask.onclick = closeSheet;
 
 document.getElementById("flavorRefresh").onclick = function(){
